@@ -1,0 +1,10 @@
+{
+  "name": "http-canister-nodejs-example",
+  "private": true,
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@dfinity/http-canister-client": "workspace:*"
+  }
+}

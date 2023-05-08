@@ -1,0 +1,27 @@
+{
+  "name": "@dfinity/http-canister-client",
+  "version": "0.0.0",
+  "description": "A JavaScript client for Internet Computer canisters that implement the HTTP interface",
+  "author": "DFINITY Stiftung",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dfinity/http-gateway#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dfinity/http-gateway.git",
+    "directory": "packages/http-canister-client"
+  },
+  "bugs": {
+    "url": "https://github.com/dfinity/http-gateway/issues"
+  },
+  "keywords": ["internet", "computer", "icp", "dfinity", "canister", "http", "interface", "client"],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "@dfinity/agent": "^0.15.6",
+    "@dfinity/candid": "^0.15.6",
+    "@dfinity/principal": "^0.15.6"
+  }
+}
