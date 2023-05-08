@@ -1,0 +1,3 @@
+packages:
+  - 'packages/http-canister-client'
+  - 'examples/http-canister-client/nodejs'
