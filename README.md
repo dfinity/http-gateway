@@ -36,4 +36,4 @@ Check out our [contribution guidelines](./.github/CONTRIBUTING.md).
 cz commit
 ```
 
-See [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) for more information on the commit message formats
+See [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) for more information on the commit message formats.
