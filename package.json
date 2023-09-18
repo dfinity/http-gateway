@@ -1,10 +1,11 @@
 {
   "name": "http-gateway",
-  "version": "0.0.0",
-  "description": "A collection of packages that serve as building blocks for developing Internet Computer HTTP Gateway implementations",
-  "author": "DFINITY Stiftung",
-  "license": "Apache-2.0",
   "private": true,
+  "engines": {
+    "node": "^18",
+    "pnpm": "^8",
+    "npm": "please use pnpm"
+  },
   "scripts": {
     "build": "pnpm run -r build",
     "format": "prettier --write .",
@@ -19,6 +20,9 @@
     "@types/node": "^20.1.0",
     "isomorphic-fetch": "^3.0.0",
     "prettier": "^2.8.8",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "vite": "^4.4.9",
+    "vite-plugin-checker": "^0.6.2",
+    "vitest": "^0.34.4"
   }
 }

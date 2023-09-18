@@ -7,13 +7,13 @@ export type HeaderField = [string, string];
 export interface HttpRequest {
   url: string;
   method: string;
-  body: Uint8Array;
+  body: Uint8Array | number[];
   headers: Array<HeaderField>;
   certificate_version: [] | [number];
 }
 
 export interface HttpResponse {
-  body: Uint8Array;
+  body: Uint8Array | number[];
   headers: Array<HeaderField>;
   upgrade: [] | [boolean];
   streaming_strategy: [] | [StreamingStrategy];
@@ -23,13 +23,13 @@ export interface HttpResponse {
 export interface HttpUpdateRequest {
   url: string;
   method: string;
-  body: Uint8Array;
+  body: Uint8Array | number[];
   headers: Array<HeaderField>;
 }
 
 export interface StreamingCallbackHttpResponse {
   token: [] | [Token];
-  body: Uint8Array;
+  body: Uint8Array | number[];
 }
 
 export type StreamingStrategy = {
