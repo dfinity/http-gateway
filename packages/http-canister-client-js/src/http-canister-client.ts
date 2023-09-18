@@ -23,7 +23,7 @@ export class HttpCanisterClient {
   }
 
   public async httpRequestUpdate(
-    payload: HttpUpdateRequest
+    payload: HttpUpdateRequest,
   ): Promise<HttpResponse> {
     return await this.actor.http_request_update(payload);
   }

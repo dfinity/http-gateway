@@ -13,11 +13,30 @@
   "bugs": {
     "url": "https://github.com/dfinity/http-gateway/issues"
   },
-  "keywords": ["internet", "computer", "icp", "dfinity", "canister", "http", "interface", "client"],
-  "main": "dist/index.js",
+  "keywords": [
+    "internet",
+    "computer",
+    "icp",
+    "dfinity",
+    "canister",
+    "http",
+    "interface",
+    "client"
+  ],
+  "main": "./dist/http-canister-client.umd.js",
+  "module": "./dist/http-canister-client.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/http-canister-client.mjs",
+      "require": "./dist/http-canister-client.umd.js"
+    }
+  },
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "vite build && tsc -p ./tsconfig.types.json",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "@dfinity/agent": "^0.15.6",

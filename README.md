@@ -6,13 +6,17 @@ The HTTP Gateway Protocol is an extension of the Internet Computer Protocol that
 
 You can read more about this protocol in [the spec](https://github.com/dfinity/interface-spec/blob/master/spec/http-gateway-protocol-spec.md).
 
-## Packages
+## Projects
 
-- [HTTP Canister Client](./packages/http-canister/README.md)
+### HTTP Canister Client
 
-## Examples
+- [NPM Package](./packages/http-canister/README.md)
+- [NodeJS Example](./examples/http-canister-client/nodejs/README.md)
 
-- [HTTP Canister Client NodeJS](./examples/http-canister-client/nodejs/README.md)
+| Command                                       | Description                    |
+| --------------------------------------------- | ------------------------------ |
+| `pnpm -F @dfinity/http-canister-client build` | Build NPM package              |
+| `pnpm -F http-canister-nodejs-example start`  | Run the NodeJS example project |
 
 ## Related Projects
 
@@ -29,6 +33,25 @@ Check out our [contribution guidelines](./.github/CONTRIBUTING.md).
 
 - [Install pre-commit](https://pre-commit.com/#installation)
 - [Install commitizen](https://commitizen-tools.github.io/commitizen/#installation)
+- [Install NVM](https://github.com/nvm-sh/nvm)
+
+Install the correct version of NodeJS:
+
+```shell
+nvm install
+```
+
+Activate the correct version of NodeJS:
+
+```shell
+nvm use
+```
+
+Install and activate the correct version of PNPM:
+
+```shell
+corepack enable
+```
 
 ### Making a Commit
 
@@ -37,3 +60,19 @@ cz commit
 ```
 
 See [Conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) for more information on the commit message formats
+
+### Package naming conventions
+
+NPM packages are named `@dfinity/<package-name>` and the folder name is `<package-name>-js`.
+
+### Referencing an NPM package
+
+An NPM package can be referenced using the package name and [PNPM workspace protocol](https://pnpm.io/workspaces#workspace-protocol-workspace) in `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@dfinity/certificate-verification": "workspace:*"
+  }
+}
+```

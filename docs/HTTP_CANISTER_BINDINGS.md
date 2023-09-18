@@ -2,14 +2,14 @@
 
 ## Candid Interface
 
-The Candid interface is located in `./package/http-canister-client/src/http-interface/http-interface.did`.
+The Candid interface is located in `./package/http-canister-client-js/src/http-interface/http-interface.did`.
 
 ## JavaScript binding
 
 Generate the binding:
 
 ```shell
-didc bind ./packages/http-canister-client/src/http-interface/http-interface.did --target js > ./packages/http-canister-client/src/http-interface/http-interface.ts
+didc bind ./packages/http-canister-client-js/src/http-interface/http-interface.did --target js > ./packages/http-canister-client-js/src/http-interface/http-interface.ts
 ```
 
 Then move the `StreamingCallbackHttpResponse` variable outside of the `idlFactory` function, rename to `streamingCallbackHttpResponseType` and then export it.
@@ -39,7 +39,7 @@ and finally, remove the unused init method `export const init`.
 Generate the binding:
 
 ```shell
-didc bind ./packages/http-canister-client/src/http-interface/http-interface.did --target ts > ./packages/http-canister-client/src/http-interface/http-interface-types.d.ts
+didc bind ./packages/http-canister-client-js/src/http-interface/http-interface.did --target ts > ./packages/http-canister-client-js/src/http-interface/http-interface-types.ts
 ```
 
 Add the following import:

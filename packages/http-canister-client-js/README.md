@@ -35,7 +35,7 @@ const response = await client.httpRequest({
   url: '/',
   method: 'GET',
   body: [],
-  headers: [["accept-encoding", "gzip"]],
+  headers: [['accept-encoding', 'gzip']],
   certificate_version: [],
 });
 
@@ -59,7 +59,7 @@ const response = await client.httpRequestUpdate({
   url: '/',
   method: 'GET',
   body: [],
-  headers: [["accept-encoding", "gzip"]],
+  headers: [['accept-encoding', 'gzip']],
 });
 
 console.log('Response', response);
