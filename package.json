@@ -9,9 +9,7 @@
   "scripts": {
     "build": "pnpm run -r build",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "lint": "eslint src/dashboard_ui",
-    "lint:fix": "pnpm lint --fix"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@dfinity/agent": "^0.15.6",
