@@ -25,13 +25,19 @@
   ],
   "main": "./dist/http-canister-client.umd.js",
   "module": "./dist/http-canister-client.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/http-canister-client.mjs",
-      "require": "./dist/http-canister-client.umd.js"
+      "import": {
+        "default": "./dist/http-canister-client.mjs",
+        "types": "./dist/index.d.ts"
+      },
+      "require": {
+        "default": "./dist/http-canister-client.umd.js",
+        "types": "./dist/index.d.ts"
+      }
     }
   },
-  "types": "dist/index.d.ts",
   "scripts": {
     "build": "vite build && tsc -p ./tsconfig.types.json",
     "test": "vitest run",
@@ -39,8 +45,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
-    "@dfinity/agent": "^0.15.6",
-    "@dfinity/candid": "^0.15.6",
-    "@dfinity/principal": "^0.15.6"
+    "@dfinity/agent": "~0.19.3",
+    "@dfinity/candid": "~0.19.3",
+    "@dfinity/principal": "~0.19.3"
   }
 }
