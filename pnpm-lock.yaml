@@ -30,11 +30,11 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4
       vite:
-        specifier: ^4.4.12
-        version: 4.4.12(@types/node@20.1.0)
+        specifier: ^4.5.2
+        version: 4.5.2(@types/node@20.1.0)
       vite-plugin-checker:
         specifier: ^0.6.2
-        version: 0.6.2(typescript@5.0.4)(vite@4.4.12)
+        version: 0.6.2(typescript@5.0.4)(vite@4.5.2)
       vitest:
         specifier: ^0.34.4
         version: 0.34.4
@@ -1253,7 +1253,7 @@ packages:
       mlly: 1.4.2
       pathe: 1.1.1
       picocolors: 1.0.0
-      vite: 4.4.12(@types/node@20.1.0)
+      vite: 4.5.2(@types/node@20.1.0)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -1265,7 +1265,7 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-checker@0.6.2(typescript@5.0.4)(vite@4.4.12):
+  /vite-plugin-checker@0.6.2(typescript@5.0.4)(vite@4.5.2):
     resolution: {integrity: sha512-YvvvQ+IjY09BX7Ab+1pjxkELQsBd4rPhWNw8WLBeFVxu/E7O+n6VYAqNsKdK/a2luFlX/sMpoWdGFfg4HvwdJQ==}
     engines: {node: '>=14.16'}
     peerDependencies:
@@ -1310,15 +1310,15 @@ packages:
       strip-ansi: 6.0.1
       tiny-invariant: 1.3.1
       typescript: 5.0.4
-      vite: 4.4.12(@types/node@20.1.0)
+      vite: 4.5.2(@types/node@20.1.0)
       vscode-languageclient: 7.0.0
       vscode-languageserver: 7.0.0
       vscode-languageserver-textdocument: 1.0.8
       vscode-uri: 3.0.7
     dev: true
 
-  /vite@4.4.12(@types/node@20.1.0):
-    resolution: {integrity: sha512-KtPlUbWfxzGVul8Nut8Gw2Qe8sBzWY+8QVc5SL8iRFnpnrcoCaNlzO40c1R6hPmcdTwIPEDkq0Y9+27a5tVbdQ==}
+  /vite@4.5.2(@types/node@20.1.0):
+    resolution: {integrity: sha512-tBCZBNSBbHQkaGyhGCDUGqeo2ph8Fstyp6FMSvTtsXeZSPpSMGlviAOav2hxVTqFcx8Hj/twtWKsMJXNY0xI8w==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
     peerDependencies:
@@ -1405,7 +1405,7 @@ packages:
       strip-literal: 1.3.0
       tinybench: 2.5.1
       tinypool: 0.7.0
-      vite: 4.4.12(@types/node@20.1.0)
+      vite: 4.5.2(@types/node@20.1.0)
       vite-node: 0.34.4(@types/node@20.1.0)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
