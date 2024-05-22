@@ -1,4 +1,8 @@
-node_modules
-dist
+target/
+.dfx/
+node_modules/
+dist/
+pocket-ic
+.env
+
 .DS_Store
-.idea

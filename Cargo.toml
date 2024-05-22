@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "examples/http-gateway/canister/src/custom_assets",
+    "packages/ic-http-gateway",
+]
+
+# https://github.com/rust-lang/cargo/issues/9406
+# includes all members except those that must be compiled to WASM
+default-members = ["packages/ic-http-gateway"]
+
+[workspace.package]
+version = "0.0.0"
+authors = ["DFINITY Stiftung"]
+edition = "2021"
+repository = "https://github.com/dfinity/http-gateway"
+homepage = "https://github.com/dfinity/http-gateway#readme"
+license = "Apache-2.0"
+
+[profile.release]
+lto = true
+opt-level = 'z'
+codegen-units = 1
+
+[workspace.dependencies]
+thiserror = "1"
+futures = "0.3"
+http = "1"
+base64 = "0.22"
+lazy_static = "1"
+serde = "1"
+serde_cbor = "0.11"
+tokio = { version = "1", features = ["full"] }
+
+ic-cdk = "0.13"
+ic-cdk-macros = "0.13"
+ic-agent = "0.35"
+ic-utils = "0.35"
+candid = "0.10"
+pocket-ic = "=3.0.0"
+
+ic-certification = { git = "https://github.com/dfinity/response-verification" }
+ic-http-certification = { git = "https://github.com/dfinity/response-verification" }
+ic-response-verification = { git = "https://github.com/dfinity/response-verification" }
+ic-asset-certification = { git = "https://github.com/dfinity/response-verification" }
+
+ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0" }

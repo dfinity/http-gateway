@@ -1,0 +1,19 @@
+{
+  "dfx": "0.20.0",
+  "output_env_file": ".env",
+  "version": 1,
+  "networks": {
+    "local": {
+      "type": "ephemeral"
+    }
+  },
+  "canisters": {
+    "http_gateway_canister_custom_assets": {
+      "type": "rust",
+      "package": "http_gateway_canister_custom_assets",
+      "candid": "./examples/http-gateway/canister/src/custom_assets/custom_assets.did",
+      "gzip": true,
+      "optimize": "cycles"
+    }
+  }
+}
