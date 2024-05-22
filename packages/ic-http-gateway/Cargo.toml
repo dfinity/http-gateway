@@ -1,0 +1,40 @@
+[package]
+name = "ic-http-gateway"
+description = "An HTTP Gateway implementation for interfacing with the Internet Computer over HTTP"
+readme = "README.md"
+documentation = "https://docs.rs/ic-http-gateway"
+categories = [
+    "api-bindings",
+    "cryptography::cryptocurrencies",
+    "network-programming",
+    "wasm",
+]
+keywords = ["internet-computer", "http", "gateway", "icp", "dfinity"]
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+homepage.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+futures.workspace = true
+http.workspace = true
+
+ic-agent.workspace = true
+ic-utils.workspace = true
+candid.workspace = true
+
+ic-http-certification.workspace = true
+ic-response-verification.workspace = true
+
+[dev-dependencies]
+pocket-ic.workspace = true
+tokio.workspace = true
+ic-asset.workspace = true
+slog.workspace = true
+slog-term.workspace = true
+slog-async.workspace = true
