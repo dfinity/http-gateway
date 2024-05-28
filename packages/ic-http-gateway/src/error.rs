@@ -22,6 +22,6 @@ pub enum HttpGatewayError {
     #[error(r#"Failed to parse the "{header_name}" header value: "{header_value:?}""#)]
     HeaderValueParsingError {
         header_name: String,
-        header_value: Vec<u8>,
+        header_value: String,
     },
 }

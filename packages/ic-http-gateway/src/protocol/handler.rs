@@ -31,7 +31,7 @@ fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest> {
                         .to_str()
                         .map_err(|_| HttpGatewayError::HeaderValueParsingError {
                             header_name: name.to_string(),
-                            header_value: value.as_bytes().to_vec(),
+                            header_value: String::from_utf8_lossy(value.as_bytes()).to_string(),
                         })?
                         .to_string(),
                 ))
@@ -116,7 +116,7 @@ pub async fn process_request(
                 return Ok(HttpGatewayResponse {
                     canister_response: err_res,
                     metadata: HttpGatewayResponseMetadata {
-                        upgraded_to_update_call: false,
+                        upgraded_to_update_call: true,
                         response_verification_version: None,
                     },
                 });
