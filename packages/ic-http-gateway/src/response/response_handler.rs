@@ -1,5 +1,7 @@
 use crate::{HttpGatewayResponseBody, ResponseBodyStream};
+use bytes::Bytes;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
+use http_body::Frame;
 use ic_agent::{Agent, AgentError};
 use ic_utils::{
     call::SyncCall,
@@ -20,10 +22,10 @@ static STREAM_CALLBACK_BUFFER: usize = 2;
 
 pub type AgentResponseAny = AgentResponse<Token, HttpRequestStreamingCallbackAny>;
 
-pub async fn get_body_and_streaming_body<'a, 'b>(
-    agent: &'a Agent,
-    response: &'b AgentResponseAny,
-) -> Result<HttpGatewayResponseBody<'a>, AgentError> {
+pub async fn get_body_and_streaming_body(
+    agent: &Agent,
+    response: &AgentResponseAny,
+) -> Result<HttpGatewayResponseBody, AgentError> {
     // if we already have the full body, we can return it early
     let Some(StreamingStrategy::Callback(callback_strategy)) = response.streaming_strategy.clone()
     else {
@@ -71,16 +73,16 @@ pub async fn get_body_and_streaming_body<'a, 'b>(
     Ok(HttpGatewayResponseBody::Bytes(streamed_body))
 }
 
-fn create_body_stream<'a>(
+fn create_body_stream(
     agent: Agent,
     callback: HttpRequestStreamingCallbackAny,
     token: Option<Token>,
     initial_body: Vec<u8>,
-) -> ResponseBodyStream<'a> {
-    let chunks_stream =
-        create_stream(agent, callback, token).map(|chunk| chunk.map(|(body, _)| body));
+) -> ResponseBodyStream {
+    let chunks_stream = create_stream(agent, callback, token)
+        .map(|chunk| chunk.map(|(body, _)| Frame::data(Bytes::from(body))));
 
-    let body_stream = stream::once(async move { Ok(initial_body) })
+    let body_stream = stream::once(async move { Ok(Frame::data(Bytes::from(initial_body))) })
         .chain(chunks_stream)
         .take(MAX_HTTP_REQUEST_STREAM_CALLBACK_CALL_COUNT)
         .map(|x| async move { x })

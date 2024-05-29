@@ -1140,9 +1140,11 @@ dependencies = [
 name = "ic-http-gateway"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "candid",
  "futures",
  "http 1.1.0",
+ "http-body",
  "ic-agent",
  "ic-http-certification",
  "ic-response-verification",

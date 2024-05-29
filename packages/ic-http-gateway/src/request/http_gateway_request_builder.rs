@@ -31,13 +31,16 @@ impl<'a> HttpGatewayRequestBuilder<'a> {
         }
     }
 
-    pub fn unsafe_allow_skip_verification(mut self) -> Self {
-        self.allow_skip_verification = true;
+    pub fn unsafe_set_allow_skip_verification(
+        &mut self,
+        allow_skip_verification: bool,
+    ) -> &mut Self {
+        self.allow_skip_verification = allow_skip_verification;
 
         self
     }
 
-    pub async fn send(self) -> HttpGatewayResult<HttpGatewayResponse<'a>> {
+    pub async fn send(self) -> HttpGatewayResult<HttpGatewayResponse> {
         process_request(
             self.args.agent,
             self.args.request_args.canister_request,
