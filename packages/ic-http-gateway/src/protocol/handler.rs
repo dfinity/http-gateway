@@ -18,9 +18,16 @@ use ic_utils::{
 };
 
 fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest> {
+    let uri = request.uri();
+    let mut url = uri.path().to_string();
+    if let Some(query) = uri.query() {
+        url.push('?');
+        url.push_str(query);
+    }
+
     Ok(HttpRequest {
         method: request.method().to_string(),
-        url: request.uri().to_string(),
+        url,
         headers: request
             .headers()
             .into_iter()
@@ -46,7 +53,7 @@ pub async fn process_request(
     request: CanisterRequest,
     canister_id: Principal,
     allow_skip_verification: bool,
-) -> HttpGatewayResult<HttpGatewayResponse<'_>> {
+) -> HttpGatewayResult<HttpGatewayResponse> {
     let http_request = convert_request(request)?;
 
     let canister = HttpRequestCanister::create(agent, canister_id);
@@ -246,7 +253,7 @@ pub async fn process_request(
     })
 }
 
-fn handle_agent_error<'a>(error: AgentError) -> HttpGatewayResult<CanisterResponse<'a>> {
+fn handle_agent_error(error: AgentError) -> HttpGatewayResult<CanisterResponse> {
     match error {
         // Turn all `DestinationInvalid`s into 404
         AgentError::CertifiedReject(RejectResponse {
