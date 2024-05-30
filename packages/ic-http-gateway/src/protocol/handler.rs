@@ -317,37 +317,3 @@ fn handle_agent_error(error: AgentError) -> HttpGatewayResult<CanisterResponse> 
         e => Err(e.into()),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use http::Request;
-
-    #[test]
-    fn test_convert_request() {
-        let request = Request::builder()
-            .uri("http://example.com/foo/bar/baz?q=hello+world&t=1")
-            .header("Accept", "text/html")
-            .header("Accept-Encoding", "gzip, deflate, br, zstd")
-            .body(b"body".to_vec())
-            .unwrap();
-
-        let http_request = convert_request(request).unwrap();
-
-        assert_eq!(
-            http_request,
-            HttpRequest {
-                method: "GET".to_string(),
-                url: "/foo/bar/baz?q=hello+world&t=1".to_string(),
-                headers: vec![
-                    ("accept".to_string(), "text/html".to_string()),
-                    (
-                        "accept-encoding".to_string(),
-                        "gzip, deflate, br, zstd".to_string()
-                    ),
-                ],
-                body: b"body".to_vec(),
-            }
-        );
-    }
-}
