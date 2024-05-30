@@ -23,8 +23,6 @@ homepage.workspace = true
 thiserror.workspace = true
 futures.workspace = true
 http.workspace = true
-http-body.workspace = true
-bytes.workspace = true
 
 ic-agent.workspace = true
 ic-utils.workspace = true
