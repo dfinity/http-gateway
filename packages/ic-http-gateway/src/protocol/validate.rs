@@ -1,14 +1,11 @@
-use crate::IC_CERTIFICATE_HEADER_NAME;
+use crate::{HttpGatewayResult, IC_CERTIFICATE_HEADER_NAME};
 use candid::Principal;
 use ic_agent::Agent;
 use ic_http_certification::{HttpRequest, HttpResponse};
 use ic_response_verification::{
     types::VerificationInfo, verify_request_response_pair, MIN_VERIFICATION_VERSION,
 };
-use std::{
-    borrow::Cow,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000;
 
@@ -18,7 +15,7 @@ pub fn validate(
     request: HttpRequest,
     response: HttpResponse,
     allow_skip_verification: bool,
-) -> Result<Option<VerificationInfo>, Cow<'static, str>> {
+) -> HttpGatewayResult<Option<VerificationInfo>> {
     match (allow_skip_verification, has_ic_certificate(&response)) {
         // TODO: Remove this (FOLLOW-483)
         // Canisters don't have to provide certified variables
@@ -34,8 +31,7 @@ pub fn validate(
                 MAX_CERT_TIME_OFFSET_NS,
                 ic_public_key.as_slice(),
                 MIN_VERIFICATION_VERSION,
-            )
-            .map_err(|_| "Body does not pass verification")?;
+            )?;
             Ok(Some(verification_info))
         }
     }

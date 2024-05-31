@@ -91,15 +91,17 @@ pub async fn process_request(
     let agent_response = match query_result {
         Ok((response,)) => response,
         Err(e) => {
-            let err_res = handle_agent_error(e)?;
-
-            return Ok(HttpGatewayResponse {
-                canister_response: err_res,
-                metadata: HttpGatewayResponseMetadata {
-                    upgraded_to_update_call: false,
-                    response_verification_version: None,
-                },
-            });
+            return match handle_agent_error(&e) {
+                None => Err(e.into()),
+                Some(err_res) => Ok(HttpGatewayResponse {
+                    canister_response: err_res,
+                    metadata: HttpGatewayResponseMetadata {
+                        upgraded_to_update_call: true,
+                        response_verification_version: None,
+                        internal_error: Some(e.into()),
+                    },
+                }),
+            }
         }
     };
 
@@ -118,15 +120,17 @@ pub async fn process_request(
         match update_result {
             Ok((response,)) => response,
             Err(e) => {
-                let err_res = handle_agent_error(e)?;
-
-                return Ok(HttpGatewayResponse {
-                    canister_response: err_res,
-                    metadata: HttpGatewayResponseMetadata {
-                        upgraded_to_update_call: true,
-                        response_verification_version: None,
-                    },
-                });
+                return match handle_agent_error(&e) {
+                    None => Err(e.into()),
+                    Some(err_res) => Ok(HttpGatewayResponse {
+                        canister_response: err_res,
+                        metadata: HttpGatewayResponseMetadata {
+                            upgraded_to_update_call: true,
+                            response_verification_version: None,
+                            internal_error: Some(e.into()),
+                        },
+                    }),
+                }
             }
         }
     } else {
@@ -164,11 +168,14 @@ pub async fn process_request(
                         return Ok(HttpGatewayResponse {
                             canister_response: Response::builder()
                                 .status(StatusCode::INTERNAL_SERVER_ERROR)
-                                .body(HttpGatewayResponseBody::Bytes(err.as_bytes().to_vec()))
+                                .body(HttpGatewayResponseBody::Bytes(
+                                    err.to_string().as_bytes().to_vec(),
+                                ))
                                 .unwrap(),
                             metadata: HttpGatewayResponseMetadata {
                                 upgraded_to_update_call: is_update_call,
                                 response_verification_version: None,
+                                internal_error: Some(err),
                             },
                         });
                     }
@@ -210,6 +217,7 @@ pub async fn process_request(
                             response_verification_version: Some(
                                 validation_info.verification_version,
                             ),
+                            internal_error: None,
                         },
                     });
                 }
@@ -249,23 +257,26 @@ pub async fn process_request(
         metadata: HttpGatewayResponseMetadata {
             upgraded_to_update_call: is_update_call,
             response_verification_version: validation_info.map(|e| e.verification_version),
+            internal_error: None,
         },
     })
 }
 
-fn handle_agent_error(error: AgentError) -> HttpGatewayResult<CanisterResponse> {
+fn handle_agent_error(error: &AgentError) -> Option<CanisterResponse> {
     match error {
         // Turn all `DestinationInvalid`s into 404
         AgentError::CertifiedReject(RejectResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(HttpGatewayResponseBody::Bytes(
-                reject_message.as_bytes().to_vec(),
-            ))
-            .unwrap()),
+        }) => Some(
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(HttpGatewayResponseBody::Bytes(
+                    reject_message.as_bytes().to_vec(),
+                ))
+                .unwrap(),
+        ),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
@@ -275,22 +286,26 @@ fn handle_agent_error(error: AgentError) -> HttpGatewayResult<CanisterResponse> 
                 response.reject_code, response.reject_message, response.error_code,
             );
 
-            Ok(Response::builder()
-                .status(StatusCode::BAD_GATEWAY)
-                .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
-                .unwrap())
+            Some(
+                Response::builder()
+                    .status(StatusCode::BAD_GATEWAY)
+                    .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
+                    .unwrap(),
+            )
         }
 
         AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(HttpGatewayResponseBody::Bytes(
-                reject_message.as_bytes().to_vec(),
-            ))
-            .unwrap()),
+        }) => Some(
+            Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(HttpGatewayResponseBody::Bytes(
+                    reject_message.as_bytes().to_vec(),
+                ))
+                .unwrap(),
+        ),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
@@ -300,21 +315,25 @@ fn handle_agent_error(error: AgentError) -> HttpGatewayResult<CanisterResponse> 
                 response.reject_code, response.reject_message, response.error_code,
             );
 
-            Ok(Response::builder()
-                .status(StatusCode::BAD_GATEWAY)
-                .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
-                .unwrap())
+            Some(
+                Response::builder()
+                    .status(StatusCode::BAD_GATEWAY)
+                    .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
+                    .unwrap(),
+            )
         }
 
-        AgentError::ResponseSizeExceededLimit() => Ok(Response::builder()
-            .status(StatusCode::INSUFFICIENT_STORAGE)
-            .body(HttpGatewayResponseBody::Bytes(
-                b"Response size exceeds limit".to_vec(),
-            ))
-            .unwrap()),
+        AgentError::ResponseSizeExceededLimit() => Some(
+            Response::builder()
+                .status(StatusCode::INSUFFICIENT_STORAGE)
+                .body(HttpGatewayResponseBody::Bytes(
+                    b"Response size exceeds limit".to_vec(),
+                ))
+                .unwrap(),
+        ),
 
         // Handle all other errors
-        e => Err(e.into()),
+        _ => None,
     }
 }
 
