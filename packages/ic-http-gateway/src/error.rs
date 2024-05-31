@@ -7,6 +7,9 @@ pub type HttpGatewayResult<T = ()> = Result<T, HttpGatewayError>;
 /// HTTP gateway error type.
 #[derive(thiserror::Error, Debug)]
 pub enum HttpGatewayError {
+    #[error(r#"Response verification error: "{0}""#)]
+    ResponseVerificationError(#[from] ic_response_verification::ResponseVerificationError),
+
     /// Inner error from agent.
     #[error(r#"Agent error: "{0}""#)]
     AgentError(#[from] ic_agent::AgentError),

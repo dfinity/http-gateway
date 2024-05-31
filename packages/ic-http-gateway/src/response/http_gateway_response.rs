@@ -9,6 +9,8 @@ use std::{
     task::{Context, Poll},
 };
 
+use crate::HttpGatewayError;
+
 pub type CanisterResponse = Response<HttpGatewayResponseBody>;
 
 /// A response from the HTTP gateway.
@@ -20,6 +22,21 @@ pub struct HttpGatewayResponse {
 
     /// Additional metadata regarding the response.
     pub metadata: HttpGatewayResponseMetadata,
+}
+
+/// Additional metadata regarding the response.
+#[derive(Debug)]
+pub struct HttpGatewayResponseMetadata {
+    /// Whether the original query call was upgraded to an update call.
+    pub upgraded_to_update_call: bool,
+
+    /// The version of response verification that was used to verify the response.
+    /// If the protocol fails before getting to the verification step, or the
+    /// original query call is upgraded to an update call, this field will be `None`.
+    pub response_verification_version: Option<u16>,
+
+    /// The internal error that resulted in the HTTP response being an error response.
+    pub internal_error: Option<HttpGatewayError>,
 }
 
 /// The body of an HTTP gateway response.
@@ -105,16 +122,4 @@ impl Stream for ResponseBodyStream {
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.inner.as_mut().poll_next(cx)
     }
-}
-
-/// Additional metadata regarding the response.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HttpGatewayResponseMetadata {
-    /// Whether the original query call was upgraded to an update call.
-    pub upgraded_to_update_call: bool,
-
-    /// The version of response verification that was used to verify the response.
-    /// If the protocol fails before getting to the verification step, or the
-    /// original query call is upgraded to an update call, this field will be `None`.
-    pub response_verification_version: Option<u16>,
 }

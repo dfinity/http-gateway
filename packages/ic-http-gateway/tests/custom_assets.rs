@@ -73,11 +73,27 @@ fn test_custom_assets_index_html() {
         response.canister_response.body(),
         HttpGatewayResponseBody::Bytes(body) if body == index_html
     );
-    assert_eq!(
+
+    assert_response_metadata(
         response.metadata,
         HttpGatewayResponseMetadata {
             upgraded_to_update_call: false,
             response_verification_version: Some(2),
-        }
+            internal_error: None,
+        },
+    );
+}
+
+fn assert_response_metadata(
+    response_metadata: HttpGatewayResponseMetadata,
+    expected_response_metadata: HttpGatewayResponseMetadata,
+) {
+    assert_eq!(
+        response_metadata.upgraded_to_update_call,
+        expected_response_metadata.upgraded_to_update_call
+    );
+    assert_eq!(
+        response_metadata.response_verification_version,
+        expected_response_metadata.response_verification_version
     );
 }
