@@ -25,7 +25,7 @@ pub struct HttpGatewayResponse {
 }
 
 /// Additional metadata regarding the response.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HttpGatewayResponseMetadata {
     /// Whether the original query call was upgraded to an update call.
     pub upgraded_to_update_call: bool,
@@ -99,7 +99,6 @@ pub struct ResponseBodyStream {
     inner: Pin<Box<dyn Stream<Item = ResponseBodyStreamItem> + 'static>>,
 }
 
-// Trait bound added for cloning.
 impl ResponseBodyStream {
     pub fn new(stream: impl Stream<Item = ResponseBodyStreamItem> + 'static) -> Self {
         Self {
@@ -108,14 +107,12 @@ impl ResponseBodyStream {
     }
 }
 
-// Debug implementation remains the same
 impl Debug for ResponseBodyStream {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponseBodyStream").finish()
     }
 }
 
-// Stream implementation remains the same
 impl Stream for ResponseBodyStream {
     type Item = ResponseBodyStreamItem;
 
