@@ -16,13 +16,9 @@ pub enum HttpGatewayError {
     #[error(transparent)]
     AgentError(#[from] Arc<ic_agent::AgentError>),
 
-    /// Inner error from agent.
+    /// HTTP error.
     #[error(r#"HTTP error: "{0}""#)]
     HttpError(String),
-
-    /// Inner error from agent.
-    #[error(r#"HTTP header error: "{0}""#)]
-    InvalidStatusCodeError(String),
 
     #[error(r#"Failed to parse the "{header_name}" header value: "{header_value:?}""#)]
     HeaderValueParsingError {
@@ -45,6 +41,6 @@ impl From<http::Error> for HttpGatewayError {
 
 impl From<http::status::InvalidStatusCode> for HttpGatewayError {
     fn from(err: http::status::InvalidStatusCode) -> Self {
-        HttpGatewayError::InvalidStatusCodeError(err.to_string())
+        HttpGatewayError::HttpError(err.to_string())
     }
 }
