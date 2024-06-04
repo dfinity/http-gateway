@@ -17,6 +17,13 @@ use ic_utils::{
     interfaces::{http_request::HeaderField, HttpRequestCanister},
 };
 
+fn create_err_response(status_code: StatusCode, msg: &str) -> CanisterResponse {
+    let mut response = Response::new(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()));
+    *response.status_mut() = status_code;
+
+    response
+}
+
 fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest> {
     let uri = request.uri();
     let mut url = uri.path().to_string();
@@ -53,8 +60,23 @@ pub async fn process_request(
     request: CanisterRequest,
     canister_id: Principal,
     allow_skip_verification: bool,
-) -> HttpGatewayResult<HttpGatewayResponse> {
-    let http_request = convert_request(request)?;
+) -> HttpGatewayResponse {
+    let http_request = match convert_request(request) {
+        Ok(http_request) => http_request,
+        Err(e) => {
+            return HttpGatewayResponse {
+                canister_response: create_err_response(
+                    StatusCode::BAD_REQUEST,
+                    &format!("Failed to parse request: {}", e),
+                ),
+                metadata: HttpGatewayResponseMetadata {
+                    upgraded_to_update_call: false,
+                    response_verification_version: None,
+                    internal_error: Some(e.into()),
+                },
+            }
+        }
+    };
 
     let canister = HttpRequestCanister::create(agent, canister_id);
     let header_fields = http_request
@@ -91,17 +113,14 @@ pub async fn process_request(
     let agent_response = match query_result {
         Ok((response,)) => response,
         Err(e) => {
-            return match handle_agent_error(&e) {
-                None => Err(e.into()),
-                Some(err_res) => Ok(HttpGatewayResponse {
-                    canister_response: err_res,
-                    metadata: HttpGatewayResponseMetadata {
-                        upgraded_to_update_call: true,
-                        response_verification_version: None,
-                        internal_error: Some(e.into()),
-                    },
-                }),
-            }
+            return HttpGatewayResponse {
+                canister_response: handle_agent_error(&e),
+                metadata: HttpGatewayResponseMetadata {
+                    upgraded_to_update_call: false,
+                    response_verification_version: None,
+                    internal_error: Some(e.into()),
+                },
+            };
         }
     };
 
@@ -120,24 +139,36 @@ pub async fn process_request(
         match update_result {
             Ok((response,)) => response,
             Err(e) => {
-                return match handle_agent_error(&e) {
-                    None => Err(e.into()),
-                    Some(err_res) => Ok(HttpGatewayResponse {
-                        canister_response: err_res,
-                        metadata: HttpGatewayResponseMetadata {
-                            upgraded_to_update_call: true,
-                            response_verification_version: None,
-                            internal_error: Some(e.into()),
-                        },
-                    }),
-                }
+                return HttpGatewayResponse {
+                    canister_response: handle_agent_error(&e),
+                    metadata: HttpGatewayResponseMetadata {
+                        upgraded_to_update_call: true,
+                        response_verification_version: None,
+                        internal_error: Some(e.into()),
+                    },
+                };
             }
         }
     } else {
         agent_response
     };
 
-    let response_body = get_body_and_streaming_body(agent, &agent_response).await?;
+    let response_body = match get_body_and_streaming_body(agent, &agent_response).await {
+        Ok(response_body) => response_body,
+        Err(e) => {
+            return HttpGatewayResponse {
+                canister_response: create_err_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Failed to parse response body: {}", e),
+                ),
+                metadata: HttpGatewayResponseMetadata {
+                    upgraded_to_update_call: is_update_call,
+                    response_verification_version: None,
+                    internal_error: Some(e.into()),
+                },
+            }
+        }
+    };
 
     // there is no need to verify the response if the request was upgraded to an update call
     let validation_info = if !is_update_call {
@@ -164,20 +195,18 @@ pub async fn process_request(
                 );
 
                 match validation_result {
-                    Err(err) => {
-                        return Ok(HttpGatewayResponse {
-                            canister_response: Response::builder()
-                                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                                .body(HttpGatewayResponseBody::Bytes(
-                                    err.to_string().as_bytes().to_vec(),
-                                ))
-                                .unwrap(),
+                    Err(e) => {
+                        return HttpGatewayResponse {
+                            canister_response: create_err_response(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                &format!("Response verification failed: {}", e),
+                            ),
                             metadata: HttpGatewayResponseMetadata {
                                 upgraded_to_update_call: is_update_call,
                                 response_verification_version: None,
-                                internal_error: Some(err),
+                                internal_error: Some(e),
                             },
-                        });
+                        };
                     }
                     Ok(validation_info) => validation_info,
                 }
@@ -188,13 +217,31 @@ pub async fn process_request(
         None
     };
 
-    let mut response_builder =
-        Response::builder().status(StatusCode::from_u16(agent_response.status_code)?);
+    let response_verification_version = validation_info.as_ref().map(|e| e.verification_version);
+
+    let status_code = match StatusCode::from_u16(agent_response.status_code) {
+        Ok(status_code) => status_code,
+        Err(e) => {
+            return HttpGatewayResponse {
+                canister_response: create_err_response(
+                    StatusCode::BAD_REQUEST,
+                    &format!("Failed to parse response status code: {}", e),
+                ),
+                metadata: HttpGatewayResponseMetadata {
+                    upgraded_to_update_call: is_update_call,
+                    response_verification_version,
+                    internal_error: Some(e.into()),
+                },
+            }
+        }
+    };
+
+    let mut response_builder = Response::builder().status(status_code);
 
     match &validation_info {
         // if there is no validation info, that means we've skipped verification,
-        // this should only happen for raw domains,
-        // return response as-is
+        // this should only happen for raw domains, or for responses that are too
+        // large to verify, return response as-is
         None => {
             for HeaderField(name, value) in &agent_response.headers {
                 response_builder = response_builder.header(name.as_ref(), value.as_ref());
@@ -205,21 +252,17 @@ pub async fn process_request(
             if validation_info.verification_version < 2 {
                 // status codes are not certified in v1, reject known dangerous status codes
                 if agent_response.status_code >= 300 && agent_response.status_code < 400 {
-                    let msg = b"Response verification v1 does not allow redirects";
-
-                    return Ok(HttpGatewayResponse {
-                        canister_response: Response::builder()
-                            .status(StatusCode::INTERNAL_SERVER_ERROR)
-                            .body(HttpGatewayResponseBody::Bytes(msg.to_vec()))
-                            .unwrap(),
+                    return HttpGatewayResponse {
+                        canister_response: create_err_response(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            "Response verification v1 does not allow redirects",
+                        ),
                         metadata: HttpGatewayResponseMetadata {
                             upgraded_to_update_call: is_update_call,
-                            response_verification_version: Some(
-                                validation_info.verification_version,
-                            ),
+                            response_verification_version,
                             internal_error: None,
                         },
-                    });
+                    };
                 }
 
                 // headers are also not certified in v1, filter known dangerous headers
@@ -250,90 +293,78 @@ pub async fn process_request(
         }
     }
 
-    let response = response_builder.body(response_body)?;
+    let response = match response_builder.body(response_body) {
+        Ok(response) => response,
+        Err(e) => {
+            return HttpGatewayResponse {
+                canister_response: create_err_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Failed to build response: {}", e),
+                ),
+                metadata: HttpGatewayResponseMetadata {
+                    upgraded_to_update_call: is_update_call,
+                    response_verification_version,
+                    internal_error: Some(e.into()),
+                },
+            }
+        }
+    };
 
-    Ok(HttpGatewayResponse {
+    HttpGatewayResponse {
         canister_response: response,
         metadata: HttpGatewayResponseMetadata {
             upgraded_to_update_call: is_update_call,
-            response_verification_version: validation_info.map(|e| e.verification_version),
+            response_verification_version,
             internal_error: None,
         },
-    })
+    }
 }
 
-fn handle_agent_error(error: &AgentError) -> Option<CanisterResponse> {
+fn handle_agent_error(error: &AgentError) -> CanisterResponse {
     match error {
         // Turn all `DestinationInvalid`s into 404
         AgentError::CertifiedReject(RejectResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => Some(
-            Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(HttpGatewayResponseBody::Bytes(
-                    reject_message.as_bytes().to_vec(),
-                ))
-                .unwrap(),
-        ),
+        }) => create_err_response(StatusCode::NOT_FOUND, &reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
-        AgentError::CertifiedReject(response) => {
-            let msg = format!(
+        AgentError::CertifiedReject(response) => create_err_response(
+            StatusCode::BAD_GATEWAY,
+            &format!(
                 "Replica Error: reject code {:?}, message {}, error code {:?}",
                 response.reject_code, response.reject_message, response.error_code,
-            );
-
-            Some(
-                Response::builder()
-                    .status(StatusCode::BAD_GATEWAY)
-                    .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
-                    .unwrap(),
-            )
-        }
+            ),
+        ),
 
         AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => Some(
-            Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(HttpGatewayResponseBody::Bytes(
-                    reject_message.as_bytes().to_vec(),
-                ))
-                .unwrap(),
-        ),
+        }) => create_err_response(StatusCode::NOT_FOUND, &reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
-        AgentError::UncertifiedReject(response) => {
-            let msg = format!(
+        AgentError::UncertifiedReject(response) => create_err_response(
+            StatusCode::BAD_GATEWAY,
+            &format!(
                 "Replica Error: reject code {:?}, message {}, error code {:?}",
                 response.reject_code, response.reject_message, response.error_code,
-            );
+            ),
+        ),
 
-            Some(
-                Response::builder()
-                    .status(StatusCode::BAD_GATEWAY)
-                    .body(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()))
-                    .unwrap(),
-            )
-        }
-
-        AgentError::ResponseSizeExceededLimit() => Some(
-            Response::builder()
-                .status(StatusCode::INSUFFICIENT_STORAGE)
-                .body(HttpGatewayResponseBody::Bytes(
-                    b"Response size exceeds limit".to_vec(),
-                ))
-                .unwrap(),
+        AgentError::ResponseSizeExceededLimit() => create_err_response(
+            StatusCode::INSUFFICIENT_STORAGE,
+            "Response size exceeds limit",
         ),
 
         // Handle all other errors
-        _ => None,
+        _ => create_err_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("Internal Server Error: {:?}", error),
+        ),
     }
 }
 

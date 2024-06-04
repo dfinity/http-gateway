@@ -1,4 +1,4 @@
-use crate::{error::HttpGatewayResult, protocol::process_request, HttpGatewayResponse};
+use crate::{protocol::process_request, HttpGatewayResponse};
 use candid::Principal;
 use http::Request;
 use ic_agent::Agent;
@@ -40,7 +40,7 @@ impl<'a> HttpGatewayRequestBuilder<'a> {
         self
     }
 
-    pub async fn send(self) -> HttpGatewayResult<HttpGatewayResponse> {
+    pub async fn send(self) -> HttpGatewayResponse {
         process_request(
             self.args.agent,
             self.args.request_args.canister_request,

@@ -41,7 +41,6 @@ fn test_custom_assets_index_html() {
             })
             .send()
             .await
-            .unwrap()
     });
 
     let index_html = b"<html><body>Hello, world!</body></html>";
