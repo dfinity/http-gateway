@@ -2,6 +2,7 @@ use crate::{HttpGatewayResponseBody, ResponseBodyStream};
 use bytes::Bytes;
 use futures::{stream, Stream, StreamExt, TryStreamExt};
 use http_body::Frame;
+use http_body_util::Full;
 use ic_agent::{Agent, AgentError};
 use ic_utils::{
     call::SyncCall,
@@ -29,7 +30,9 @@ pub async fn get_body_and_streaming_body(
     // if we already have the full body, we can return it early
     let Some(StreamingStrategy::Callback(callback_strategy)) = response.streaming_strategy.clone()
     else {
-        return Ok(HttpGatewayResponseBody::Bytes(response.body.clone()));
+        return Ok(HttpGatewayResponseBody::Right(Full::from(
+            response.body.clone(),
+        )));
     };
 
     let (streamed_body, token) = create_stream(
@@ -64,13 +67,13 @@ pub async fn get_body_and_streaming_body(
             streamed_body,
         );
 
-        return Ok(HttpGatewayResponseBody::Stream(body_stream));
+        return Ok(HttpGatewayResponseBody::Left(body_stream));
     };
 
     // if we no longer have a token at this point,
     // we were able to collect the response within the allow certified callback limit,
     // return this collected response as a standard response body so it will be verified
-    Ok(HttpGatewayResponseBody::Bytes(streamed_body))
+    Ok(HttpGatewayResponseBody::Right(Full::from(streamed_body)))
 }
 
 fn create_body_stream(
@@ -88,7 +91,7 @@ fn create_body_stream(
         .map(|x| async move { x })
         .buffered(STREAM_CALLBACK_BUFFER);
 
-    ResponseBodyStream::new(body_stream)
+    ResponseBodyStream::new(Box::pin(body_stream))
 }
 
 fn create_stream(
