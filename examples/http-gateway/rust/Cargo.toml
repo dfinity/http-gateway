@@ -1,0 +1,19 @@
+[package]
+name = "http_gateway_rust"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+http-body-util.workspace = true
+
+ic-http-gateway.workspace = true
+ic-agent.workspace = true
+
+pocket-ic.workspace = true

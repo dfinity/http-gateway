@@ -6,6 +6,7 @@ use crate::{
 };
 use candid::Principal;
 use http::{Response, StatusCode};
+use http_body_util::{BodyExt, Either, Full};
 use ic_agent::{
     agent::{RejectCode, RejectResponse},
     Agent, AgentError,
@@ -18,7 +19,9 @@ use ic_utils::{
 };
 
 fn create_err_response(status_code: StatusCode, msg: &str) -> CanisterResponse {
-    let mut response = Response::new(HttpGatewayResponseBody::Bytes(msg.as_bytes().to_vec()));
+    let mut response = Response::new(HttpGatewayResponseBody::Right(Full::from(
+        msg.as_bytes().to_vec(),
+    )));
     *response.status_mut() = status_code;
 
     response
@@ -72,7 +75,7 @@ pub async fn process_request(
                 metadata: HttpGatewayResponseMetadata {
                     upgraded_to_update_call: false,
                     response_verification_version: None,
-                    internal_error: Some(e.into()),
+                    internal_error: Some(e),
                 },
             }
         }
@@ -176,7 +179,10 @@ pub async fn process_request(
         // strategy. Performing verification for those requests would required to join all the chunks
         // and this could cause memory issues and possibly create DOS attack vectors.
         match &response_body {
-            HttpGatewayResponseBody::Bytes(body) => {
+            Either::Right(body) => {
+                // this unwrap should never panic because `Either::Right` will always have a full body
+                let body = body.clone().collect().await.unwrap().to_bytes().to_vec();
+
                 let validation_result = validate(
                     agent,
                     &canister_id,
@@ -188,7 +194,7 @@ pub async fn process_request(
                             .iter()
                             .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
                             .collect(),
-                        body: body.to_owned(),
+                        body,
                         upgrade: None,
                     },
                     allow_skip_verification,
@@ -327,7 +333,7 @@ fn handle_agent_error(error: &AgentError) -> CanisterResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => create_err_response(StatusCode::NOT_FOUND, &reject_message),
+        }) => create_err_response(StatusCode::NOT_FOUND, reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
@@ -343,7 +349,7 @@ fn handle_agent_error(error: &AgentError) -> CanisterResponse {
             reject_code: RejectCode::DestinationInvalid,
             reject_message,
             ..
-        }) => create_err_response(StatusCode::NOT_FOUND, &reject_message),
+        }) => create_err_response(StatusCode::NOT_FOUND, reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.

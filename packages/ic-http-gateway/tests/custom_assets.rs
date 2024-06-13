@@ -1,8 +1,7 @@
 use http::Request;
+use http_body_util::BodyExt;
 use ic_agent::Agent;
-use ic_http_gateway::{
-    HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseBody, HttpGatewayResponseMetadata,
-};
+use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata};
 use pocket_ic::PocketIcBuilder;
 
 mod utils;
@@ -68,10 +67,19 @@ fn test_custom_assets_index_html() {
             ("content-type", "text/html"),
         ]
     );
-    matches!(
-        response.canister_response.body(),
-        HttpGatewayResponseBody::Bytes(body) if body == index_html
-    );
+
+    rt.block_on(async {
+        let body = response
+            .canister_response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .to_vec();
+
+        assert_eq!(body, index_html);
+    });
 
     assert_response_metadata(
         response.metadata,

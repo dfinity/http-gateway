@@ -4,10 +4,12 @@ use crate::{
 };
 use ic_agent::Agent;
 
+#[derive(Clone)]
 pub struct HttpGatewayClientArgs {
     pub agent: Agent,
 }
 
+#[derive(Clone)]
 pub struct HttpGatewayClient {
     agent: Agent,
 }
