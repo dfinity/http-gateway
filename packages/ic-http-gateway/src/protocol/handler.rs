@@ -62,7 +62,7 @@ pub async fn process_request(
     agent: &Agent,
     request: CanisterRequest,
     canister_id: Principal,
-    allow_skip_verification: bool,
+    skip_verification: bool,
 ) -> HttpGatewayResponse {
     let http_request = match convert_request(request) {
         Ok(http_request) => http_request,
@@ -197,7 +197,7 @@ pub async fn process_request(
                         body,
                         upgrade: None,
                     },
-                    allow_skip_verification,
+                    skip_verification,
                 );
 
                 match validation_result {

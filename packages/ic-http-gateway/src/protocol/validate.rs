@@ -14,9 +14,9 @@ pub fn validate(
     canister_id: &Principal,
     request: HttpRequest,
     response: HttpResponse,
-    allow_skip_verification: bool,
+    skip_verification: bool,
 ) -> HttpGatewayResult<Option<VerificationInfo>> {
-    if allow_skip_verification {
+    if skip_verification {
         // TODO: Remove this (FOLLOW-483)
         // Canisters don't have to provide certified variables
         // This should change in the future, grandfathering in current implementations
