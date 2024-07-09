@@ -20,22 +20,22 @@ pub struct HttpGatewayRequestBuilderArgs<'a> {
 
 pub struct HttpGatewayRequestBuilder<'a> {
     args: HttpGatewayRequestBuilderArgs<'a>,
-    allow_skip_verification: bool,
+    skip_verification: bool,
 }
 
 impl<'a> HttpGatewayRequestBuilder<'a> {
     pub fn new(args: HttpGatewayRequestBuilderArgs<'a>) -> Self {
         Self {
             args,
-            allow_skip_verification: false,
+            skip_verification: false,
         }
     }
 
     pub fn unsafe_set_allow_skip_verification(
         &mut self,
-        allow_skip_verification: bool,
+        skip_verification: bool,
     ) -> &mut Self {
-        self.allow_skip_verification = allow_skip_verification;
+        self.skip_verification = skip_verification;
 
         self
     }
@@ -45,7 +45,7 @@ impl<'a> HttpGatewayRequestBuilder<'a> {
             self.args.agent,
             self.args.request_args.canister_request,
             self.args.request_args.canister_id,
-            self.allow_skip_verification,
+            self.skip_verification,
         )
         .await
     }
