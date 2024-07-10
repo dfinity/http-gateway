@@ -31,7 +31,7 @@ impl<'a> HttpGatewayRequestBuilder<'a> {
         }
     }
 
-    pub fn unsafe_set_allow_skip_verification(&mut self, skip_verification: bool) -> &mut Self {
+    pub fn unsafe_set_skip_verification(&mut self, skip_verification: bool) -> &mut Self {
         self.skip_verification = skip_verification;
 
         self
