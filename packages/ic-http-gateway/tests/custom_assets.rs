@@ -51,8 +51,27 @@ fn test_custom_assets_index_html() {
         .collect::<Vec<(&str, &str)>>();
 
     assert_eq!(response.canister_response.status(), 200);
+
+    // check that the response contains the certificate headers
+    assert!(
+        contains_header("ic-certificate", response_headers.clone()),
+        "response does not contain 'ic-certificate' header"
+    );
+
+    assert!(
+        contains_header("ic-certificateexpression", response_headers.clone()),
+        "response does not contain 'ic-certificateexpression' header"
+    );
+
+    // remove certificate headers before checking the certified headers
+    let certified_headers: Vec<(&str, &str)> = response_headers
+        .iter()
+        .filter(|(key, _)| *key != "ic-certificate" && *key != "ic-certificateexpression")
+        .cloned() // To convert from iterator of references to an iterator of owned values
+        .collect();
+
     assert_eq!(
-        response_headers,
+        certified_headers,
         vec![
             ("content-length", index_html.len().to_string().as_str()),
             ("strict-transport-security", "max-age=31536000; includeSubDomains"),
@@ -103,4 +122,8 @@ fn assert_response_metadata(
         response_metadata.response_verification_version,
         expected_response_metadata.response_verification_version
     );
+}
+
+fn contains_header(header_name: &str, headers: Vec<(&str, &str)>) -> bool {
+    headers.iter().any(|(key, _)| *key == header_name)
 }
