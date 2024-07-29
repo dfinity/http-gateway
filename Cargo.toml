@@ -41,8 +41,8 @@ hyper-util = "0.1"
 
 ic-cdk = "0.13"
 ic-cdk-macros = "0.13"
-ic-agent = "0.35"
-ic-utils = "0.35"
+ic-agent = "0.37"
+ic-utils = "0.37"
 candid = "0.10"
 pocket-ic = "=3.0.0"
 
