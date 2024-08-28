@@ -1,8 +1,8 @@
 use super::validate;
 use crate::{
-    get_body_and_streaming_body, CanisterRequest, CanisterResponse, HttpGatewayError,
-    HttpGatewayResponse, HttpGatewayResponseBody, HttpGatewayResponseMetadata, HttpGatewayResult,
-    ACCEPT_ENCODING_HEADER_NAME, CACHE_HEADER_NAME,
+    get_206_stream_response_body, get_body_and_streaming_body, CanisterRequest, CanisterResponse,
+    HttpGatewayError, HttpGatewayResponse, HttpGatewayResponseBody, HttpGatewayResponseMetadata,
+    HttpGatewayResult, ACCEPT_ENCODING_HEADER_NAME, CACHE_HEADER_NAME,
 };
 use candid::Principal;
 use http::{Response, StatusCode};
@@ -186,7 +186,7 @@ pub async fn process_request(
                 let validation_result = validate(
                     agent,
                     &canister_id,
-                    http_request,
+                    http_request.clone(),
                     HttpResponse {
                         status_code: agent_response.status_code,
                         headers: agent_response
@@ -299,6 +299,36 @@ pub async fn process_request(
         }
     }
 
+    let response_body: HttpGatewayResponseBody = if status_code == 206 {
+        // We got only the first chunk, turn the response into a streaming response
+        match get_206_stream_response_body(
+            agent,
+            &http_request,
+            canister_id,
+            &agent_response.headers,
+            response_body,
+        )
+        .await
+        {
+            Ok(stream_response_body) => stream_response_body,
+            Err(e) => {
+                return HttpGatewayResponse {
+                    canister_response: create_err_response(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!("Failed to create streaming responsey: {}", e),
+                    ),
+                    metadata: HttpGatewayResponseMetadata {
+                        upgraded_to_update_call: is_update_call,
+                        response_verification_version: None,
+                        internal_error: Some(e.into()),
+                    },
+                }
+            }
+        }
+    } else {
+        response_body
+    };
+
     let response = match response_builder.body(response_body) {
         Ok(response) => response,
         Err(e) => {
@@ -326,7 +356,7 @@ pub async fn process_request(
     }
 }
 
-fn handle_agent_error(error: &AgentError) -> CanisterResponse {
+pub(crate) fn handle_agent_error(error: &AgentError) -> CanisterResponse {
     match error {
         // Turn all `DestinationInvalid`s into 404
         AgentError::CertifiedReject(RejectResponse {

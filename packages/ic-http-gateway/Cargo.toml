@@ -26,6 +26,7 @@ http.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
 bytes.workspace = true
+regex.workspace = true
 
 ic-agent.workspace = true
 ic-utils.workspace = true
@@ -35,5 +36,6 @@ ic-http-certification.workspace = true
 ic-response-verification.workspace = true
 
 [dev-dependencies]
+assert_matches.workspace = true
 pocket-ic.workspace = true
 tokio.workspace = true

@@ -6,3 +6,4 @@ pocket-ic
 .env
 
 .DS_Store
+.idea
