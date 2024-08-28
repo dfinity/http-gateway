@@ -46,9 +46,9 @@ ic-utils = "0.37"
 candid = "0.10"
 pocket-ic = "=3.0.0"
 
-ic-certification = { git = "https://github.com/dfinity/response-verification" }
-ic-http-certification = { git = "https://github.com/dfinity/response-verification" }
-ic-response-verification = { git = "https://github.com/dfinity/response-verification" }
-ic-asset-certification = { git = "https://github.com/dfinity/response-verification" }
+ic-certification = { git = "https://github.com/dfinity/response-verification", rev = "da70db93832f88ecc556ae082612aedec47d3816" }
+ic-http-certification = { git = "https://github.com/dfinity/response-verification", rev = "da70db93832f88ecc556ae082612aedec47d3816" }
+ic-response-verification = { git = "https://github.com/dfinity/response-verification", rev = "da70db93832f88ecc556ae082612aedec47d3816" }
+ic-asset-certification = { git = "https://github.com/dfinity/response-verification", rev = "da70db93832f88ecc556ae082612aedec47d3816" }
 
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0" }
