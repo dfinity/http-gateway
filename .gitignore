@@ -4,5 +4,6 @@ node_modules/
 dist/
 pocket-ic
 .env
+Cargo.lock
 
 .DS_Store
