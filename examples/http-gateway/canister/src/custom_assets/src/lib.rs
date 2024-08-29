@@ -41,6 +41,7 @@ fn certify_all_assets() {
             scope: "/".to_string(),
         }],
         aliased_by: vec!["/".to_string()],
+        encodings: vec![],
     }];
 
     let assets = vec![Asset::new(
@@ -57,7 +58,7 @@ fn certify_all_assets() {
     });
 }
 
-fn serve_asset(req: &HttpRequest) -> HttpResponse {
+fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
     ASSET_ROUTER.with_borrow(|asset_router| {
         if let Ok((mut response, witness, expr_path)) = asset_router.serve_asset(req) {
             add_certificate_header(&mut response, &witness, &expr_path);
@@ -91,7 +92,7 @@ fn add_certificate_header(response: &mut HttpResponse, witness: &HashTree, expr_
     let witness = cbor_encode(witness);
     let expr_path = cbor_encode(&expr_path);
 
-    response.headers.push((
+    response.add_header((
         IC_CERTIFICATE_HEADER.to_string(),
         format!(
             "certificate=:{}:, tree=:{}:, expr_path=:{}:, version=2",
