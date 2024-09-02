@@ -51,6 +51,7 @@ fn certify_all_assets() {
                 scope: "/".to_string(),
             }],
             aliased_by: vec!["/".to_string()],
+            encodings: vec![],
         },
         AssetConfig::File {
             path: "asset_206".to_string(),
@@ -61,6 +62,7 @@ fn certify_all_assets() {
             )]),
             fallback_for: vec![],
             aliased_by: vec![],
+            encodings: vec![],
         },
     ];
 
@@ -78,19 +80,19 @@ fn certify_all_assets() {
     });
 }
 
-fn serve_asset(req: &HttpRequest) -> HttpResponse {
+fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
     ASSET_ROUTER.with_borrow(|asset_router| {
         if let Ok((mut response, witness, expr_path)) = asset_router.serve_asset(req) {
             add_certificate_header(&mut response, &witness, &expr_path);
             // 'asset_206' is split into two chunks, to test "chunk-wise" serving of assets.
-            if req.url.contains("asset_206") {
-                response.status_code = 206;
+            if req.url().contains("asset_206") {
                 const FIRST_CHUNK_LEN: usize = 42;
+                let mut builder = HttpResponse::builder().with_status_code(206);
                 let content_range = if req
-                    .headers
+                    .headers()
                     .contains(&("Range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN)))
                 {
-                    response.body = ASSET_206_BODY[FIRST_CHUNK_LEN..].to_vec();
+                    builder = builder.with_body(ASSET_206_BODY[FIRST_CHUNK_LEN..].to_vec());
                     format!(
                         "bytes {}-{}/{}",
                         FIRST_CHUNK_LEN,
@@ -98,14 +100,15 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse {
                         ASSET_206_BODY.len()
                     )
                 } else {
-                    response.body = ASSET_206_BODY[..FIRST_CHUNK_LEN].to_vec();
+                    builder = builder.with_body(ASSET_206_BODY[..FIRST_CHUNK_LEN].to_vec());
                     format!("bytes 0-{}/{}", FIRST_CHUNK_LEN - 1, ASSET_206_BODY.len())
                 };
+                let mut response_206 = builder.with_headers(response.headers().to_vec()).build();
+                response_206.add_header(("Content-Range".to_string(), content_range));
+                response_206
+            } else {
                 response
-                    .headers
-                    .push(("Content-Range".to_string(), content_range));
             }
-            response
         } else {
             ic_cdk::trap("Failed to serve asset");
         }
@@ -134,7 +137,7 @@ fn add_certificate_header(response: &mut HttpResponse, witness: &HashTree, expr_
     let witness = cbor_encode(witness);
     let expr_path = cbor_encode(&expr_path);
 
-    response.headers.push((
+    response.add_header((
         IC_CERTIFICATE_HEADER.to_string(),
         format!(
             "certificate=:{}:, tree=:{}:, expr_path=:{}:, version=2",

@@ -48,9 +48,7 @@ candid = "0.10"
 pocket-ic = "=3.0.0"
 assert_matches = "1.5"
 
-ic-certification = { git = "https://github.com/dfinity/response-verification" }
-ic-http-certification = { git = "https://github.com/dfinity/response-verification" }
-ic-response-verification = { git = "https://github.com/dfinity/response-verification" }
-ic-asset-certification = { git = "https://github.com/dfinity/response-verification" }
+ic-http-certification = "2"
+ic-response-verification = "2"
 
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0" }
