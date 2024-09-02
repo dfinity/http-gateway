@@ -87,7 +87,10 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
             // 'asset_206' is split into two chunks, to test "chunk-wise" serving of assets.
             if req.url().contains("asset_206") {
                 const FIRST_CHUNK_LEN: usize = 42;
-                let mut builder = HttpResponse::builder().with_status_code(206);
+                let mut builder = HttpResponse::builder()
+                    .with_status_code(206)
+                    .with_headers(response.headers().to_vec())
+                    .with_upgrade(response.upgrade().unwrap_or(false));
                 let content_range = if req
                     .headers()
                     .contains(&("Range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN)))
@@ -103,7 +106,7 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
                     builder = builder.with_body(ASSET_206_BODY[..FIRST_CHUNK_LEN].to_vec());
                     format!("bytes 0-{}/{}", FIRST_CHUNK_LEN - 1, ASSET_206_BODY.len())
                 };
-                let mut response_206 = builder.with_headers(response.headers().to_vec()).build();
+                let mut response_206 = builder.build();
                 response_206.add_header(("Content-Range".to_string(), content_range));
                 response_206
             } else {
