@@ -1,4 +1,5 @@
 use super::validate;
+use crate::consts::CONTENT_RANGE_HEADER_NAME;
 use crate::{
     get_206_stream_response_body, get_body_and_streaming_body, CanisterRequest, CanisterResponse,
     HttpGatewayError, HttpGatewayResponse, HttpGatewayResponseBody, HttpGatewayResponseMetadata,
@@ -173,8 +174,10 @@ pub async fn process_request(
         }
     };
 
-    // there is no need to verify the response if the request was upgraded to an update call
-    let validation_info = if !is_update_call {
+    // There is no need to verify the response if the request was upgraded to an update call.
+    // Also, we temporarily skip verification for partial (206) responses.
+    // TODO: re-enable the verification of 206-responses once canister-code supports it.
+    let validation_info = if !is_update_call && agent_response.status_code != 206 {
         // At the moment verification is only performed if the response is not using a streaming
         // strategy. Performing verification for those requests would required to join all the chunks
         // and this could cause memory issues and possibly create DOS attack vectors.
@@ -250,7 +253,11 @@ pub async fn process_request(
         // large to verify, return response as-is
         None => {
             for HeaderField(name, value) in &agent_response.headers {
-                response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                // Do not copy "Content-Range"-header, as clients obtain the full asset
+                // via a streaming response.
+                if !name.eq_ignore_ascii_case(CONTENT_RANGE_HEADER_NAME) {
+                    response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                }
             }
         }
 

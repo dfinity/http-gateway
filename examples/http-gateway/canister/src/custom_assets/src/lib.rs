@@ -6,9 +6,10 @@ use ic_cdk::{
     *,
 };
 use ic_certification::HashTree;
-use ic_http_certification::{HeaderField, HttpRequest, HttpResponse};
+use ic_http_certification::{HeaderField, HttpCertificationTree, HttpRequest, HttpResponse};
 use serde::Serialize;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 #[init]
 fn init() {
@@ -26,27 +27,47 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 }
 
 thread_local! {
-    static ASSET_ROUTER: RefCell<AssetRouter<'static>> = Default::default();
+    static HTTP_TREE: Rc<RefCell<HttpCertificationTree>> = Default::default();
+
+    // initializing the asset router with an HTTP certification tree is optional.
+    // if direct access to the HTTP certification tree is not needed for certifying
+    // requests and responses outside of the asset router, then this step can be skipped.
+    static ASSET_ROUTER: RefCell<AssetRouter<'static>> = RefCell::new(AssetRouter::with_tree(HTTP_TREE.with(|tree| tree.clone())));
 }
 
-fn certify_all_assets() {
-    let asset_configs = vec![AssetConfig::File {
-        path: "index.html".to_string(),
-        content_type: Some("text/html".to_string()),
-        headers: get_asset_headers(vec![(
-            "cache-control".to_string(),
-            "public, no-cache, no-store".to_string(),
-        )]),
-        fallback_for: vec![AssetFallbackConfig {
-            scope: "/".to_string(),
-        }],
-        aliased_by: vec!["/".to_string()],
-    }];
+static ASSET_206_BODY: &[u8; 64] =
+    b"<html><body>Some asset that returns a 206-response</body></html>";
 
-    let assets = vec![Asset::new(
-        "index.html",
-        b"<html><body>Hello, world!</body></html>",
-    )];
+fn certify_all_assets() {
+    let asset_configs = vec![
+        AssetConfig::File {
+            path: "index.html".to_string(),
+            content_type: Some("text/html".to_string()),
+            headers: get_asset_headers(vec![(
+                "cache-control".to_string(),
+                "public, no-cache, no-store".to_string(),
+            )]),
+            fallback_for: vec![AssetFallbackConfig {
+                scope: "/".to_string(),
+            }],
+            aliased_by: vec!["/".to_string()],
+        },
+        AssetConfig::File {
+            path: "asset_206".to_string(),
+            content_type: Some("text/html".to_string()),
+            headers: get_asset_headers(vec![(
+                "cache-control".to_string(),
+                "public, no-cache, no-store".to_string(),
+            )]),
+            fallback_for: vec![],
+            aliased_by: vec![],
+        },
+    ];
+
+    let assets = vec![
+        Asset::new("index.html", b"<html><body>Hello, world!</body></html>"),
+        Asset::new("asset_206", ASSET_206_BODY),
+    ];
 
     ASSET_ROUTER.with_borrow_mut(|asset_router| {
         if let Err(err) = asset_router.certify_assets(assets, asset_configs) {
@@ -61,7 +82,29 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse {
     ASSET_ROUTER.with_borrow(|asset_router| {
         if let Ok((mut response, witness, expr_path)) = asset_router.serve_asset(req) {
             add_certificate_header(&mut response, &witness, &expr_path);
-
+            // 'asset_206' is split into two chunks, to test "chunk-wise" serving of assets.
+            if req.url.contains("asset_206") {
+                response.status_code = 206;
+                const FIRST_CHUNK_LEN: usize = 42;
+                let content_range = if req
+                    .headers
+                    .contains(&("Range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN)))
+                {
+                    response.body = ASSET_206_BODY[FIRST_CHUNK_LEN..].to_vec();
+                    format!(
+                        "bytes {}-{}/{}",
+                        FIRST_CHUNK_LEN,
+                        ASSET_206_BODY.len() - 1,
+                        ASSET_206_BODY.len()
+                    )
+                } else {
+                    response.body = ASSET_206_BODY[..FIRST_CHUNK_LEN].to_vec();
+                    format!("bytes 0-{}/{}", FIRST_CHUNK_LEN - 1, ASSET_206_BODY.len())
+                };
+                response
+                    .headers
+                    .push(("Content-Range".to_string(), content_range));
+            }
             response
         } else {
             ic_cdk::trap("Failed to serve asset");
