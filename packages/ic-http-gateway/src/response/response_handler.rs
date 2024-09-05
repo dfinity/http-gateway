@@ -1,4 +1,3 @@
-use crate::consts::CONTENT_RANGE_HEADER_NAME;
 use crate::{HttpGatewayResponseBody, ResponseBodyStream};
 use bytes::Bytes;
 use candid::Principal;
@@ -135,13 +134,13 @@ struct StreamState {
     pub fetched_length: usize,
 }
 
-pub async fn get_206_stream_response_body(
+pub async fn get_206_stream_response_body_and_total_length(
     agent: &Agent,
-    http_request: &HttpRequest,
+    http_request: HttpRequest,
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
     response_206_body: HttpGatewayResponseBody,
-) -> Result<HttpGatewayResponseBody, AgentError> {
+) -> Result<(HttpGatewayResponseBody, usize), AgentError> {
     let HttpGatewayResponseBody::Right(body) = response_206_body else {
         return Err(AgentError::InvalidHttpResponse(
             "Expected full 206 response".to_string(),
@@ -155,9 +154,10 @@ pub async fn get_206_stream_response_body(
         .to_bytes()
         .to_vec();
     let stream_state = get_stream_state(http_request, canister_id, response_headers)?;
+    let content_length = stream_state.total_length;
 
     let body_stream = create_206_body_stream(agent.clone(), stream_state, streamed_body);
-    return Ok(HttpGatewayResponseBody::Left(body_stream));
+    return Ok((HttpGatewayResponseBody::Left(body_stream), content_length));
 }
 
 #[derive(Debug)]
@@ -177,19 +177,19 @@ fn parse_content_range_header_str(str_value: &str) -> Result<ContentRangeValues,
     };
     let range_begin: usize = caps
         .get(1)
-        .expect("missing range-begin")
+        .ok_or_else(|| AgentError::InvalidHttpResponse("missing range-begin".to_string()))?
         .as_str()
         .parse()
         .map_err(|_| AgentError::InvalidHttpResponse("malformed range-begin".to_string()))?;
     let range_end: usize = caps
         .get(2)
-        .expect("missing range-end")
+        .ok_or_else(|| AgentError::InvalidHttpResponse("missing range-end".to_string()))?
         .as_str()
         .parse()
         .map_err(|_| AgentError::InvalidHttpResponse("malformed range-end".to_string()))?;
     let total_length: usize = caps
         .get(3)
-        .expect("missing size")
+        .ok_or_else(|| AgentError::InvalidHttpResponse("missing size".to_string()))?
         .as_str()
         .parse()
         .map_err(|_| AgentError::InvalidHttpResponse("malformed size".to_string()))?;
@@ -205,7 +205,7 @@ fn get_content_range_header_str(
     response_headers: &Vec<HeaderField<'static>>,
 ) -> Result<String, AgentError> {
     for HeaderField(name, value) in response_headers {
-        if name.eq_ignore_ascii_case(CONTENT_RANGE_HEADER_NAME) {
+        if name.eq_ignore_ascii_case(http::header::CONTENT_RANGE.as_ref()) {
             return Ok(value.to_string());
         }
     }
@@ -222,14 +222,14 @@ fn get_content_range_values(
 }
 
 fn get_stream_state(
-    http_request: &HttpRequest,
+    http_request: HttpRequest,
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
 ) -> Result<StreamState, AgentError> {
     let range_values = get_content_range_values(response_headers)?;
 
     Ok(StreamState {
-        http_request: http_request.clone(),
+        http_request,
         canister_id,
         total_length: range_values.total_length,
         fetched_length: range_values
@@ -376,7 +376,7 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 2-4/10"), // fetched 3 bytes, total length is 10
         )];
-        let state = get_stream_state(&http_request, canister_id, &response_headers)
+        let state = get_stream_state(http_request.clone(), canister_id, &response_headers)
             .expect("failed constructing StreamState");
         assert_eq!(state.http_request, http_request);
         assert_eq!(state.canister_id, canister_id);
@@ -397,7 +397,7 @@ mod tests {
             Cow::from("other header"),
             Cow::from("other value"),
         )];
-        let result = get_stream_state(&http_request, canister_id, &response_headers);
+        let result = get_stream_state(http_request, canister_id, &response_headers);
         assert_matches!(result, Err(e) if format!("{}", e).contains("missing Content-Range header"));
     }
 
@@ -414,7 +414,7 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 42/10"),
         )];
-        let result = get_stream_state(&http_request, canister_id, &response_headers);
+        let result = get_stream_state(http_request, canister_id, &response_headers);
         assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
     }
 }

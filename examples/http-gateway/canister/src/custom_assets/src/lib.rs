@@ -6,10 +6,9 @@ use ic_cdk::{
     *,
 };
 use ic_certification::HashTree;
-use ic_http_certification::{HeaderField, HttpCertificationTree, HttpRequest, HttpResponse};
+use ic_http_certification::{HeaderField, HttpRequest, HttpResponse};
 use serde::Serialize;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 #[init]
 fn init() {
@@ -27,12 +26,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 }
 
 thread_local! {
-    static HTTP_TREE: Rc<RefCell<HttpCertificationTree>> = Default::default();
-
-    // initializing the asset router with an HTTP certification tree is optional.
-    // if direct access to the HTTP certification tree is not needed for certifying
-    // requests and responses outside of the asset router, then this step can be skipped.
-    static ASSET_ROUTER: RefCell<AssetRouter<'static>> = RefCell::new(AssetRouter::with_tree(HTTP_TREE.with(|tree| tree.clone())));
+    static ASSET_ROUTER: RefCell<AssetRouter<'static>> = Default::default();
 }
 
 static ASSET_206_BODY: &[u8; 64] =
@@ -89,11 +83,20 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
                 const FIRST_CHUNK_LEN: usize = 42;
                 let mut builder = HttpResponse::builder()
                     .with_status_code(206)
-                    .with_headers(response.headers().to_vec())
+                    .with_headers(
+                        response
+                            .headers()
+                            .iter()
+                            .filter(|(name, _)| name.to_ascii_lowercase() != "content-length")
+                            .map(|(name, value)| (name.into(), value.into()))
+                            .collect::<Vec<HeaderField>>(),
+                    )
                     .with_upgrade(response.upgrade().unwrap_or(false));
-                let content_range = if req
-                    .headers()
-                    .contains(&("Range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN)))
+                let range_header = ("Range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN));
+                let range_header_lowercase =
+                    ("range".to_string(), format!("bytes={}-", FIRST_CHUNK_LEN));
+                let content_range = if req.headers().contains(&range_header)
+                    || req.headers().contains(&range_header_lowercase)
                 {
                     builder = builder.with_body(ASSET_206_BODY[FIRST_CHUNK_LEN..].to_vec());
                     format!(
@@ -107,6 +110,10 @@ fn serve_asset(req: &HttpRequest) -> HttpResponse<'static> {
                     format!("bytes 0-{}/{}", FIRST_CHUNK_LEN - 1, ASSET_206_BODY.len())
                 };
                 let mut response_206 = builder.build();
+                response_206.add_header((
+                    "Content-Length".to_string(),
+                    response_206.body().len().to_string(),
+                ));
                 response_206.add_header(("Content-Range".to_string(), content_range));
                 response_206
             } else {

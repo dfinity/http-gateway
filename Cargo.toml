@@ -33,7 +33,7 @@ http-body-util = "0.1"
 bytes = "1"
 base64 = "0.22"
 lazy_static = "1"
-regex = "1.10"
+regex = "1"
 serde = "1"
 serde_cbor = "0.11"
 tokio = { version = "1", features = ["full"] }
