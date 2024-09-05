@@ -7,3 +7,4 @@ pocket-ic
 Cargo.lock
 
 .DS_Store
+.idea

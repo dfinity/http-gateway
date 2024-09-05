@@ -1,10 +1,11 @@
 use super::validate;
 use crate::{
-    get_body_and_streaming_body, CanisterRequest, CanisterResponse, HttpGatewayError,
-    HttpGatewayResponse, HttpGatewayResponseBody, HttpGatewayResponseMetadata, HttpGatewayResult,
-    ACCEPT_ENCODING_HEADER_NAME, CACHE_HEADER_NAME,
+    get_206_stream_response_body_and_total_length, get_body_and_streaming_body, CanisterRequest,
+    CanisterResponse, HttpGatewayError, HttpGatewayResponse, HttpGatewayResponseBody,
+    HttpGatewayResponseMetadata, HttpGatewayResult, ACCEPT_ENCODING_HEADER_NAME, CACHE_HEADER_NAME,
 };
 use candid::Principal;
+use http::header as http_header;
 use http::{Response, StatusCode};
 use http_body_util::{BodyExt, Either, Full};
 use ic_agent::{
@@ -82,6 +83,7 @@ pub async fn process_request(
     };
 
     let canister = HttpRequestCanister::create(agent, canister_id);
+    let mut is_range_request = false;
     let header_fields = http_request
         .headers
         .iter()
@@ -95,6 +97,10 @@ pub async fn process_request(
 
                 let value = encodings.join(", ");
                 return HeaderField(name.into(), value.into());
+            } else if name.eq_ignore_ascii_case(http_header::RANGE.as_ref())
+                || name.eq_ignore_ascii_case(http_header::IF_RANGE.as_ref())
+            {
+                is_range_request = true;
             }
 
             HeaderField(name.into(), value.into())
@@ -173,8 +179,10 @@ pub async fn process_request(
         }
     };
 
-    // there is no need to verify the response if the request was upgraded to an update call
-    let validation_info = if !is_update_call {
+    // There is no need to verify the response if the request was upgraded to an update call.
+    // Also, we temporarily skip verification for partial (206) responses.
+    // TODO: re-enable the verification of 206-responses once canister-code supports it.
+    let validation_info = if !is_update_call && agent_response.status_code != 206 {
         // At the moment verification is only performed if the response is not using a streaming
         // strategy. Performing verification for those requests would required to join all the chunks
         // and this could cause memory issues and possibly create DOS attack vectors.
@@ -186,7 +194,7 @@ pub async fn process_request(
                 let validation_result = validate(
                     agent,
                     &canister_id,
-                    http_request,
+                    http_request.clone(),
                     HttpResponse {
                         status_code: agent_response.status_code,
                         headers: agent_response
@@ -243,14 +251,23 @@ pub async fn process_request(
     };
 
     let mut response_builder = Response::builder().status(status_code);
-
     match &validation_info {
         // if there is no validation info, that means we've skipped verification,
         // this should only happen for raw domains, or for responses that are too
         // large to verify, return response as-is
         None => {
             for HeaderField(name, value) in &agent_response.headers {
-                response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                // If the request is not a range-request, do not copy "Content-Range"
+                // and "Content-Length" headers, as clients obtain the full asset
+                // via a streaming response.
+                if !is_range_request
+                    && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
+                        || name.eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
+                {
+                    // skip copying
+                } else {
+                    response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                }
             }
         }
 
@@ -298,6 +315,43 @@ pub async fn process_request(
             }
         }
     }
+
+    let response_body: HttpGatewayResponseBody = if status_code == 206 && !is_range_request {
+        // We got only the first chunk, add a correct content-length-header,
+        // and turn the response into a streaming response.
+        let (stream_response_body, content_length) =
+            match get_206_stream_response_body_and_total_length(
+                agent,
+                http_request,
+                canister_id,
+                &agent_response.headers,
+                response_body,
+            )
+            .await
+            {
+                Ok((stream_response_body, content_length)) => {
+                    (stream_response_body, content_length)
+                }
+                Err(e) => {
+                    return HttpGatewayResponse {
+                        canister_response: create_err_response(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            &format!("Failed to create streaming response: {}", e),
+                        ),
+                        metadata: HttpGatewayResponseMetadata {
+                            upgraded_to_update_call: is_update_call,
+                            response_verification_version,
+                            internal_error: Some(e.into()),
+                        },
+                    }
+                }
+            };
+        response_builder =
+            response_builder.header(http_header::CONTENT_LENGTH, content_length.to_string());
+        stream_response_body
+    } else {
+        response_body
+    };
 
     let response = match response_builder.body(response_body) {
         Ok(response) => response,
