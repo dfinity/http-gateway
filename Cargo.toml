@@ -33,9 +33,11 @@ http-body-util = "0.1"
 bytes = "1"
 base64 = "0.22"
 lazy_static = "1"
+rand_chacha = "0.3"
 regex = "1"
 serde = "1"
 serde_cbor = "0.11"
+sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = "0.1"
@@ -47,8 +49,12 @@ ic-utils = "0.37"
 candid = "0.10"
 pocket-ic = "=3.0.0"
 assert_matches = "1.5"
+rstest = "0.18"
 
-ic-http-certification = "2"
-ic-response-verification = "2"
+
+ic-response-verification = { git = "https://github.com/dfinity/response-verification", rev="51f4066fbb98769bae9ac2307e9ccdb2c88769d1" }
+ic-certification = { git = "https://github.com/dfinity/response-verification", rev="51f4066fbb98769bae9ac2307e9ccdb2c88769d1" }
+ic-http-certification = { git = "https://github.com/dfinity/response-verification", rev="51f4066fbb98769bae9ac2307e9ccdb2c88769d1" }
+ic-asset-certification = { git = "https://github.com/dfinity/response-verification", rev="51f4066fbb98769bae9ac2307e9ccdb2c88769d1" }
 
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0" }

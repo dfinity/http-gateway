@@ -39,3 +39,6 @@ ic-response-verification.workspace = true
 assert_matches.workspace = true
 pocket-ic.workspace = true
 tokio.workspace = true
+rand_chacha.workspace = true
+rstest.workspace = true
+sha2.workspace = true
