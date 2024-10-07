@@ -1,16 +1,56 @@
 use http::Request;
 use http_body_util::BodyExt;
+use ic_agent::hash_tree::Hash;
 use ic_agent::Agent;
 use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata};
 use pocket_ic::PocketIcBuilder;
+use rand_chacha::rand_core::{RngCore, SeedableRng};
+use rand_chacha::ChaCha20Rng;
+use rstest::*;
+use sha2::{Digest, Sha256};
+use std::cmp::min;
 
 mod utils;
 
-const EXPECTED_ASSET_BODY: &[u8; 64] =
-    b"<html><body>Some asset that returns a 206-response</body></html>";
+const ASSET_CHUNK_SIZE: usize = 2_000_000;
 
-#[test]
-fn test_long_asset_yields_range_request_stream() {
+const ONE_CHUNK_ASSET_LEN: usize = ASSET_CHUNK_SIZE;
+const TWO_CHUNKS_ASSET_LEN: usize = ASSET_CHUNK_SIZE + 1;
+const SIX_CHUNKS_ASSET_LEN: usize = 5 * ASSET_CHUNK_SIZE + 12;
+const TEN_CHUNKS_ASSET_LEN: usize = 10 * ASSET_CHUNK_SIZE;
+
+const ONE_CHUNK_ASSET_NAME: &str = "long_asset_one_chunk";
+const TWO_CHUNKS_ASSET_NAME: &str = "long_asset_two_chunks";
+const SIX_CHUNKS_ASSET_NAME: &str = "long_asset_six_chunks";
+const TEN_CHUNKS_ASSET_NAME: &str = "long_asset_ten_chunks";
+
+pub fn hash<T>(data: T) -> Hash
+where
+    T: AsRef<[u8]>,
+{
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hasher.finalize().into()
+}
+
+fn long_asset_body(asset_name: &str) -> Vec<u8> {
+    let asset_length = match asset_name {
+        ONE_CHUNK_ASSET_NAME => ONE_CHUNK_ASSET_LEN,
+        TWO_CHUNKS_ASSET_NAME => TWO_CHUNKS_ASSET_LEN,
+        SIX_CHUNKS_ASSET_NAME => SIX_CHUNKS_ASSET_LEN,
+        TEN_CHUNKS_ASSET_NAME => TEN_CHUNKS_ASSET_LEN,
+        _ => ASSET_CHUNK_SIZE * 3 + 1,
+    };
+    let mut rng = ChaCha20Rng::from_seed(hash(asset_name));
+    let mut body = vec![0u8; asset_length];
+    rng.fill_bytes(&mut body);
+    body
+}
+
+#[rstest]
+#[case("index.html")]
+#[case(TWO_CHUNKS_ASSET_NAME)]
+fn test_long_asset_yields_range_request_stream(#[case] asset_name: &str) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
 
@@ -39,11 +79,19 @@ fn test_long_asset_yields_range_request_stream() {
         http_gateway
             .request(HttpGatewayRequestArgs {
                 canister_id,
-                canister_request: Request::builder().uri("/asset_206").body(vec![]).unwrap(),
+                canister_request: Request::builder()
+                    .uri(format!("/{asset_name}"))
+                    .body(vec![])
+                    .unwrap(),
             })
             .send()
             .await
     });
+    println!(
+        "--- response for {} is {:?}",
+        asset_name,
+        response.canister_response.headers()
+    );
 
     let response_headers = response
         .canister_response
@@ -72,6 +120,8 @@ fn test_long_asset_yields_range_request_stream() {
         .cloned() // To convert from iterator of references to an iterator of owned values
         .collect();
 
+    let expected_body = long_asset_body(asset_name);
+
     assert_eq!(
         certified_headers,
         vec![
@@ -84,8 +134,8 @@ fn test_long_asset_yields_range_request_stream() {
             ("cross-origin-embedder-policy", "require-corp"),
             ("cross-origin-opener-policy", "same-origin"),
             ("cache-control", "public, no-cache, no-store"),
-            ("content-type", "text/html"),
-            ("content-length", EXPECTED_ASSET_BODY.len().to_string().as_str()),
+            ("content-type", "application/octet-stream"),
+            ("content-length", expected_body.len().to_string().as_str()),
         ]
     );
 
@@ -99,7 +149,7 @@ fn test_long_asset_yields_range_request_stream() {
             .to_bytes()
             .to_vec();
 
-        assert_eq!(body, EXPECTED_ASSET_BODY);
+        assert_eq!(body, expected_body);
     });
 
     assert_response_metadata(
@@ -112,8 +162,10 @@ fn test_long_asset_yields_range_request_stream() {
     );
 }
 
-#[test]
-fn test_range_request_yields_range_response() {
+#[rstest]
+#[case(ONE_CHUNK_ASSET_NAME)]
+#[case(TWO_CHUNKS_ASSET_NAME)]
+fn test_range_request_yields_range_response(#[case] asset_name: &str) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
 
@@ -138,14 +190,13 @@ fn test_range_request_yields_range_response() {
         .build()
         .unwrap();
 
-    const FIRST_CHUNK_LEN: usize = 42;
     let response = rt.block_on(async {
         http_gateway
             .request(HttpGatewayRequestArgs {
                 canister_id,
                 canister_request: Request::builder()
-                    .uri("/asset_206")
-                    .header("Range", format!("bytes={}-", FIRST_CHUNK_LEN))
+                    .uri(format!("/{asset_name}"))
+                    .header("Range", format!("bytes={}-", ASSET_CHUNK_SIZE))
                     .body(vec![])
                     .unwrap(),
             })
@@ -153,7 +204,8 @@ fn test_range_request_yields_range_response() {
             .await
     });
 
-    let expected_response_body = &EXPECTED_ASSET_BODY[FIRST_CHUNK_LEN..];
+    let expected_full_body = long_asset_body(asset_name);
+    let expected_response_body = &expected_full_body[ASSET_CHUNK_SIZE..];
     let response_headers = response
         .canister_response
         .headers()
@@ -193,13 +245,13 @@ fn test_range_request_yields_range_response() {
             ("cross-origin-embedder-policy", "require-corp"),
             ("cross-origin-opener-policy", "same-origin"),
             ("cache-control", "public, no-cache, no-store"),
-            ("content-type", "text/html"),
+            ("content-type", "application/octet-stream"),
             ("content-length", expected_response_body.len().to_string().as_str()),
             ("content-range", &format!(
                 "bytes {}-{}/{}",
-                FIRST_CHUNK_LEN,
-                EXPECTED_ASSET_BODY.len() - 1,
-                EXPECTED_ASSET_BODY.len()
+                ASSET_CHUNK_SIZE,
+                min(expected_full_body.len(), 2*ASSET_CHUNK_SIZE) - 1,
+                expected_full_body.len()
             ))
         ]
     );

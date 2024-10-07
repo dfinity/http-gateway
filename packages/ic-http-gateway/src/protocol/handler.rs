@@ -28,7 +28,7 @@ fn create_err_response(status_code: StatusCode, msg: &str) -> CanisterResponse {
     response
 }
 
-fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest> {
+fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest<'static>> {
     let uri = request.uri();
     let mut url = uri.path().to_string();
     if let Some(query) = uri.query() {
@@ -36,27 +36,29 @@ fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest> {
         url.push_str(query);
     }
 
-    Ok(HttpRequest {
-        method: request.method().to_string(),
-        url,
-        headers: request
-            .headers()
-            .into_iter()
-            .map(|(name, value)| {
-                Ok((
-                    name.to_string(),
-                    value
-                        .to_str()
-                        .map_err(|_| HttpGatewayError::HeaderValueParsingError {
-                            header_name: name.to_string(),
-                            header_value: String::from_utf8_lossy(value.as_bytes()).to_string(),
-                        })?
-                        .to_string(),
-                ))
-            })
-            .collect::<HttpGatewayResult<Vec<_>>>()?,
-        body: request.body().to_vec(),
-    })
+    Ok(HttpRequest::builder()
+        .with_method(request.method().to_string())
+        .with_url(url)
+        .with_headers(
+            request
+                .headers()
+                .into_iter()
+                .map(|(name, value)| {
+                    Ok((
+                        name.to_string(),
+                        value
+                            .to_str()
+                            .map_err(|_| HttpGatewayError::HeaderValueParsingError {
+                                header_name: name.to_string(),
+                                header_value: String::from_utf8_lossy(value.as_bytes()).to_string(),
+                            })?
+                            .to_string(),
+                    ))
+                })
+                .collect::<HttpGatewayResult<Vec<_>>>()?,
+        )
+        .with_body(request.body().to_vec())
+        .build())
 }
 
 pub async fn process_request(
@@ -85,7 +87,7 @@ pub async fn process_request(
     let canister = HttpRequestCanister::create(agent, canister_id);
     let mut is_range_request = false;
     let header_fields = http_request
-        .headers
+        .headers()
         .iter()
         .filter(|(name, _)| name != "x-request-id")
         .map(|(name, value)| {
@@ -110,10 +112,10 @@ pub async fn process_request(
 
     let query_result = canister
         .http_request_custom(
-            &http_request.method,
-            &http_request.url,
+            &http_request.method(),
+            &http_request.url(),
             header_fields.clone(),
-            &http_request.body,
+            &http_request.body(),
             Some(&u16::from(MAX_VERIFICATION_VERSION)),
         )
         .call()
@@ -137,10 +139,10 @@ pub async fn process_request(
     let agent_response = if is_update_call {
         let update_result = canister
             .http_request_update_custom(
-                &http_request.method,
-                &http_request.url,
+                &http_request.method(),
+                &http_request.url(),
                 header_fields.clone(),
-                &http_request.body,
+                &http_request.body(),
             )
             .call_and_wait()
             .await;
@@ -180,9 +182,7 @@ pub async fn process_request(
     };
 
     // There is no need to verify the response if the request was upgraded to an update call.
-    // Also, we temporarily skip verification for partial (206) responses.
-    // TODO: re-enable the verification of 206-responses once canister-code supports it.
-    let validation_info = if !is_update_call && agent_response.status_code != 206 {
+    let validation_info = if !is_update_call {
         // At the moment verification is only performed if the response is not using a streaming
         // strategy. Performing verification for those requests would required to join all the chunks
         // and this could cause memory issues and possibly create DOS attack vectors.
@@ -195,16 +195,17 @@ pub async fn process_request(
                     agent,
                     &canister_id,
                     http_request.clone(),
-                    HttpResponse {
-                        status_code: agent_response.status_code,
-                        headers: agent_response
-                            .headers
-                            .iter()
-                            .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
-                            .collect(),
-                        body,
-                        upgrade: None,
-                    },
+                    HttpResponse::builder()
+                        .with_status_code(agent_response.status_code)
+                        .with_headers(
+                            agent_response
+                                .headers
+                                .iter()
+                                .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
+                                .collect(),
+                        )
+                        .with_body(body)
+                        .build(),
                     skip_verification,
                 );
 
@@ -446,18 +447,16 @@ mod tests {
 
         assert_eq!(
             http_request,
-            HttpRequest {
-                method: "GET".to_string(),
-                url: "/foo/bar/baz?q=hello+world&t=1".to_string(),
-                headers: vec![
+            HttpRequest::get("/foo/bar/baz?q=hello+world&t=1")
+                .with_headers(vec![
                     ("accept".to_string(), "text/html".to_string()),
                     (
                         "accept-encoding".to_string(),
                         "gzip, deflate, br, zstd".to_string()
                     ),
-                ],
-                body: b"body".to_vec(),
-            }
+                ])
+                .with_body(b"body".to_vec())
+                .build()
         );
     }
 }
