@@ -28,7 +28,7 @@ fn build_gateway_image() -> Result<(), Box<dyn Error>> {
 
     if !output.status.success() {
         eprintln!("stderr: {}", String::from_utf8(output.stderr)?);
-        return Err("unable to build no_expose_port:latest".into());
+        return Err("unable to build mock busy replica image.".into());
     }
 
     Ok(())
@@ -36,8 +36,7 @@ fn build_gateway_image() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_rate_limiting_error() -> Result<(), Box<dyn std::error::Error>> {
-    let res = build_gateway_image();
-    res.expect("Failed to build the docker image");
+    build_gateway_image()?;
 
     // run the mock backend container
     let container = GenericImage::new(IMAGE_NAME, IMAGE_TAG)
@@ -61,7 +60,7 @@ async fn test_rate_limiting_error() -> Result<(), Box<dyn std::error::Error>> {
         response.status().as_u16()
     );
 
-    // Make a gatway
+    // Make a gateway
     let agent = Agent::builder().with_url(backend_base_url).build().unwrap();
     let http_gateway = HttpGatewayClient::builder()
         .with_agent(agent)
