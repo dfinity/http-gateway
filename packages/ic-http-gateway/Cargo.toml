@@ -38,4 +38,6 @@ ic-response-verification.workspace = true
 [dev-dependencies]
 assert_matches.workspace = true
 pocket-ic.workspace = true
+reqwest = "0.12.8"
+testcontainers = "0.23.1"
 tokio.workspace = true
