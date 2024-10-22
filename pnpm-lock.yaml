@@ -30,11 +30,11 @@ importers:
         specifier: ^5.0.4
         version: 5.0.4
       vite:
-        specifier: ^4.5.2
-        version: 4.5.2(@types/node@20.1.0)
+        specifier: ^4.5.5
+        version: 4.5.5(@types/node@20.1.0)
       vite-plugin-checker:
         specifier: ^0.6.2
-        version: 0.6.2(typescript@5.0.4)(vite@4.5.2(@types/node@20.1.0))
+        version: 0.6.2(typescript@5.0.4)(vite@4.5.5(@types/node@20.1.0))
       vitest:
         specifier: ^0.34.4
         version: 0.34.4
@@ -553,6 +553,7 @@ packages:
 
   loupe@2.3.6:
     resolution: {integrity: sha512-RaPMZKiMy8/JruncMU5Bt6na1eftNoo++R4Y+N2FrxkDVTrGvcyzFTsaGif4QTeKESheMGegbhw6iUAq+5A8zA==}
+    deprecated: Please upgrade to 2.3.7 which fixes GHSA-4q6p-r6v2-jvc5
 
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
@@ -806,8 +807,8 @@ packages:
       vue-tsc:
         optional: true
 
-  vite@4.5.2:
-    resolution: {integrity: sha512-tBCZBNSBbHQkaGyhGCDUGqeo2ph8Fstyp6FMSvTtsXeZSPpSMGlviAOav2hxVTqFcx8Hj/twtWKsMJXNY0xI8w==}
+  vite@4.5.5:
+    resolution: {integrity: sha512-ifW3Lb2sMdX+WU91s3R0FyQlAyLxOzCSCP37ujw0+r5POeHPwe6udWVIElKQq8gk3t7b8rkmvqC6IHBpCff4GQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
     peerDependencies:
@@ -1564,7 +1565,7 @@ snapshots:
       mlly: 1.4.2
       pathe: 1.1.1
       picocolors: 1.0.0
-      vite: 4.5.2(@types/node@20.1.0)
+      vite: 4.5.5(@types/node@20.1.0)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -1575,7 +1576,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-checker@0.6.2(typescript@5.0.4)(vite@4.5.2(@types/node@20.1.0)):
+  vite-plugin-checker@0.6.2(typescript@5.0.4)(vite@4.5.5(@types/node@20.1.0)):
     dependencies:
       '@babel/code-frame': 7.22.13
       ansi-escapes: 4.3.2
@@ -1590,7 +1591,7 @@ snapshots:
       semver: 7.5.4
       strip-ansi: 6.0.1
       tiny-invariant: 1.3.1
-      vite: 4.5.2(@types/node@20.1.0)
+      vite: 4.5.5(@types/node@20.1.0)
       vscode-languageclient: 7.0.0
       vscode-languageserver: 7.0.0
       vscode-languageserver-textdocument: 1.0.8
@@ -1598,7 +1599,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.0.4
 
-  vite@4.5.2(@types/node@20.1.0):
+  vite@4.5.5(@types/node@20.1.0):
     dependencies:
       esbuild: 0.18.20
       postcss: 8.4.31
@@ -1630,7 +1631,7 @@ snapshots:
       strip-literal: 1.3.0
       tinybench: 2.5.1
       tinypool: 0.7.0
-      vite: 4.5.2(@types/node@20.1.0)
+      vite: 4.5.5(@types/node@20.1.0)
       vite-node: 0.34.4(@types/node@20.1.0)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
