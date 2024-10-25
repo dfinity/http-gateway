@@ -112,10 +112,10 @@ pub async fn process_request(
 
     let query_result = canister
         .http_request_custom(
-            &http_request.method(),
-            &http_request.url(),
+            http_request.method(),
+            http_request.url(),
             header_fields.clone(),
-            &http_request.body(),
+            http_request.body(),
             Some(&u16::from(MAX_VERIFICATION_VERSION)),
         )
         .call()
@@ -139,10 +139,10 @@ pub async fn process_request(
     let agent_response = if is_update_call {
         let update_result = canister
             .http_request_update_custom(
-                &http_request.method(),
-                &http_request.url(),
+                http_request.method(),
+                http_request.url(),
                 header_fields.clone(),
-                &http_request.body(),
+                http_request.body(),
             )
             .call_and_wait()
             .await;
@@ -184,28 +184,30 @@ pub async fn process_request(
     // There is no need to verify the response if the request was upgraded to an update call.
     let validation_info = if !is_update_call {
         // At the moment verification is only performed if the response is not using a streaming
-        // strategy. Performing verification for those requests would required to join all the chunks
+        // strategy. Performing verification for those requests would require to join all the chunks
         // and this could cause memory issues and possibly create DOS attack vectors.
         match &response_body {
             Either::Right(body) => {
                 // this unwrap should never panic because `Either::Right` will always have a full body
                 let body = body.clone().collect().await.unwrap().to_bytes().to_vec();
 
+                let response = HttpResponse::builder()
+                    .with_status_code(agent_response.status_code)
+                    .with_headers(
+                        agent_response
+                            .headers
+                            .iter()
+                            .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
+                            .collect(),
+                    )
+                    .with_body(body)
+                    .build();
+
                 let validation_result = validate(
                     agent,
                     &canister_id,
                     http_request.clone(),
-                    HttpResponse::builder()
-                        .with_status_code(agent_response.status_code)
-                        .with_headers(
-                            agent_response
-                                .headers
-                                .iter()
-                                .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
-                                .collect(),
-                        )
-                        .with_body(body)
-                        .build(),
+                    response,
                     skip_verification,
                 );
 
@@ -254,21 +256,10 @@ pub async fn process_request(
     let mut response_builder = Response::builder().status(status_code);
     match &validation_info {
         // if there is no validation info, that means we've skipped verification,
-        // this should only happen for raw domains, or for responses that are too
-        // large to verify, return response as-is
+        // this should only happen for raw domains.
         None => {
             for HeaderField(name, value) in &agent_response.headers {
-                // If the request is not a range-request, do not copy "Content-Range"
-                // and "Content-Length" headers, as clients obtain the full asset
-                // via a streaming response.
-                if !is_range_request
-                    && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
-                        || name.eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
-                {
-                    // skip copying
-                } else {
-                    response_builder = response_builder.header(name.as_ref(), value.as_ref());
-                }
+                response_builder = response_builder.header(name.as_ref(), value.as_ref());
             }
         }
 
@@ -301,15 +292,39 @@ pub async fn process_request(
                     // assume the developer knows what they're doing and return the response as-is
                     None => {
                         for HeaderField(name, value) in &agent_response.headers {
-                            response_builder =
-                                response_builder.header(name.as_ref(), value.as_ref());
+                            // If the request is not a range-request, but got range-response,
+                            // do not copy "Content-Range" and "Content-Length" headers,
+                            // as clients obtain the full asset via a streaming response.
+                            if !is_range_request
+                                && status_code == 206
+                                && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
+                                    || name
+                                        .eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
+                            {
+                                // skip copying
+                            } else {
+                                response_builder =
+                                    response_builder.header(name.as_ref(), value.as_ref());
+                            }
                         }
                     }
                     // if there is a response, the canister has decided to certify some (but not necessarily all) headers,
                     // return only the certified headers
                     Some(certified_http_response) => {
                         for (name, value) in &certified_http_response.headers {
-                            response_builder = response_builder.header(name, value);
+                            // If the request is not a range-request, but got range-response,
+                            // do not copy "Content-Range" and "Content-Length" headers,
+                            // as clients obtain the full asset via a streaming response.
+                            if !is_range_request
+                                && status_code == 206
+                                && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
+                                    || name
+                                        .eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
+                            {
+                                // skip copying
+                            } else {
+                                response_builder = response_builder.header(name, value);
+                            }
                         }
                     }
                 }
@@ -327,6 +342,7 @@ pub async fn process_request(
                 canister_id,
                 &agent_response.headers,
                 response_body,
+                skip_verification,
             )
             .await
             {
@@ -349,6 +365,7 @@ pub async fn process_request(
             };
         response_builder =
             response_builder.header(http_header::CONTENT_LENGTH, content_length.to_string());
+        response_builder = response_builder.status(200);
         stream_response_body
     } else {
         response_body

@@ -15,7 +15,9 @@ async fn load_wasm(canister: &str) -> Vec<u8> {
 }
 
 async fn load_file(file_path: PathBuf) -> Vec<u8> {
-    let mut file = File::open(&file_path).await.unwrap();
+    let mut file = File::open(&file_path)
+        .await
+        .unwrap_or_else(|_| panic!("error opening file {:?}", file_path));
 
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).await.unwrap();

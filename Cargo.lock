@@ -902,14 +902,16 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "candid",
+ "http 1.1.0",
  "ic-asset-certification",
  "ic-cdk",
  "ic-cdk-macros",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "ic-http-certification",
  "include_dir",
  "lazy_static",
  "rand_chacha",
+ "regex",
  "serde",
  "serde_cbor",
  "sha2 0.10.8",
@@ -1043,11 +1045,11 @@ dependencies = [
 [[package]]
 name = "ic-asset-certification"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "globset",
  "http 0.2.12",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "ic-http-certification",
  "regex",
  "thiserror",
@@ -1056,10 +1058,10 @@ dependencies = [
 [[package]]
 name = "ic-cbor"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "candid",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "leb128",
  "nom",
  "thiserror",
@@ -1095,12 +1097,12 @@ dependencies = [
 [[package]]
 name = "ic-certificate-verification"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "cached 0.47.0",
  "candid",
  "ic-cbor",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "lazy_static",
  "leb128",
  "miracl_core_bls12381",
@@ -1125,7 +1127,7 @@ dependencies = [
 [[package]]
 name = "ic-certification"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "hex",
  "serde",
@@ -1136,12 +1138,12 @@ dependencies = [
 [[package]]
 name = "ic-http-certification"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "base64 0.21.7",
  "candid",
  "http 0.2.12",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "ic-representation-independent-hash",
  "serde",
  "serde_cbor",
@@ -1176,7 +1178,7 @@ dependencies = [
 [[package]]
 name = "ic-representation-independent-hash"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "leb128",
  "sha2 0.10.8",
@@ -1185,7 +1187,7 @@ dependencies = [
 [[package]]
 name = "ic-response-verification"
 version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1#51f4066fbb98769bae9ac2307e9ccdb2c88769d1"
+source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
 dependencies = [
  "base64 0.21.7",
  "candid",
@@ -1194,7 +1196,7 @@ dependencies = [
  "http 0.2.12",
  "ic-cbor",
  "ic-certificate-verification",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=51f4066fbb98769bae9ac2307e9ccdb2c88769d1)",
+ "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
  "ic-http-certification",
  "ic-representation-independent-hash",
  "leb128",

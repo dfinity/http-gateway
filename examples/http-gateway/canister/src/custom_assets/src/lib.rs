@@ -3,7 +3,7 @@ use ic_cdk::{
     api::{data_certificate, set_certified_data},
     *,
 };
-use ic_http_certification::{HeaderField, HttpRequest, HttpResponse};
+use ic_http_certification::{HeaderField, HttpRequest, HttpResponse, HttpResponseBuilder};
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::cell::RefCell;
@@ -20,14 +20,103 @@ fn post_upgrade() {
 
 #[query]
 fn http_request(req: HttpRequest) -> HttpResponse {
-    ic_cdk::println!("*** serving request ***: {:?}", req);
-    let resp = serve_asset(&req);
-    ic_cdk::println!(
-        "\n+++ returning resp: {}, {:?}",
-        resp.status_code(),
-        resp.headers()
-    );
-    resp
+    let mut response = serve_asset(&req);
+    if let Some(index) = chunk_corruption_requested(&req) {
+        let current_chunk = current_chunk_index(&response);
+        if current_chunk == index {
+            // Create a response with a corrupted body.
+            response = HttpResponseBuilder::new()
+                .with_status_code(response.status_code())
+                .with_headers(response.headers().to_vec())
+                .with_upgrade(response.upgrade().unwrap_or(false))
+                .with_body({
+                    let mut body = response.body().to_vec();
+                    body[0] += 1;
+                    body
+                })
+                .build();
+        }
+    }
+    if let Some(index) = cert_corruption_requested(&req) {
+        let current_chunk = current_chunk_index(&response);
+        if current_chunk == index {
+            let body = response.body().to_owned();
+            // Create a response with a corrupted certificate.
+            response = HttpResponseBuilder::new()
+                .with_status_code(response.status_code())
+                .with_upgrade(response.upgrade().unwrap_or(false))
+                .with_body(body)
+                .with_headers({
+                    let mut headers = response.headers().to_owned();
+                    for (key, value) in headers.iter_mut() {
+                        if key == "IC-Certificate" {
+                            value.insert(15, char::from(42));
+                        }
+                    }
+                    headers.to_vec()
+                })
+                .build();
+        }
+    }
+    response
+}
+
+fn current_chunk_index(resp: &HttpResponse) -> usize {
+    if let Some(content_range_header_value) = get_header_value(resp.headers(), "Content-Range") {
+        get_content_range_begin(&content_range_header_value) / ASSET_CHUNK_SIZE
+    } else {
+        // Not a range-response, the asset is a single chunk
+        0
+    }
+}
+
+fn chunk_corruption_requested(req: &HttpRequest) -> Option<usize> {
+    if let Some(corrupted_chunk_index) = get_header_value(req.headers(), "Test-CorruptedChunkIndex")
+    {
+        Some(
+            corrupted_chunk_index
+                .parse()
+                .expect("invalid index of chunk to corrupt"),
+        )
+    } else {
+        None
+    }
+}
+
+fn cert_corruption_requested(req: &HttpRequest) -> Option<usize> {
+    if let Some(corrupted_cert_chunk_index) =
+        get_header_value(req.headers(), "Test-CorruptedCertificate")
+    {
+        Some(
+            corrupted_cert_chunk_index
+                .parse()
+                .expect("invalid index of chunk to corrupt the certificate"),
+        )
+    } else {
+        None
+    }
+}
+
+fn get_header_value(headers: &[HeaderField], header_name: &str) -> Option<String> {
+    for (name, value) in headers.iter() {
+        if name.to_lowercase().eq(&header_name.to_lowercase()) {
+            return Some(value.to_string());
+        }
+    }
+    None
+}
+
+fn get_content_range_begin(content_range_header_value: &str) -> usize {
+    // expected format: `bytes 21010-47021/47022`
+    let re = regex::Regex::new(r"bytes\s+(\d+)-(\d+)/(\d+)").expect("invalid RE");
+    let caps = re
+        .captures(content_range_header_value)
+        .expect("malformed Content-Range header");
+    caps.get(1)
+        .expect("missing range-begin")
+        .as_str()
+        .parse()
+        .expect("malformed range-begin")
 }
 
 thread_local! {

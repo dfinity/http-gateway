@@ -1,3 +1,4 @@
+use assert_matches::assert_matches;
 use http::Request;
 use http_body_util::BodyExt;
 use ic_agent::hash_tree::Hash;
@@ -48,9 +49,10 @@ fn long_asset_body(asset_name: &str) -> Vec<u8> {
 }
 
 #[rstest]
-#[case("index.html")]
 #[case(TWO_CHUNKS_ASSET_NAME)]
-fn test_long_asset_yields_range_request_stream(#[case] asset_name: &str) {
+#[case(SIX_CHUNKS_ASSET_NAME)]
+#[case(TEN_CHUNKS_ASSET_NAME)]
+fn test_long_asset_request_yields_entire_asset(#[case] asset_name: &str) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
 
@@ -87,11 +89,6 @@ fn test_long_asset_yields_range_request_stream(#[case] asset_name: &str) {
             .send()
             .await
     });
-    println!(
-        "--- response for {} is {:?}",
-        asset_name,
-        response.canister_response.headers()
-    );
 
     let response_headers = response
         .canister_response
@@ -100,7 +97,7 @@ fn test_long_asset_yields_range_request_stream(#[case] asset_name: &str) {
         .map(|(k, v)| (k.as_str(), v.to_str().unwrap()))
         .collect::<Vec<(&str, &str)>>();
 
-    assert_eq!(response.canister_response.status(), 206);
+    assert_eq!(response.canister_response.status(), 200);
 
     // check that the response contains the certificate headers
     assert!(
@@ -156,15 +153,164 @@ fn test_long_asset_yields_range_request_stream(#[case] asset_name: &str) {
         response.metadata,
         HttpGatewayResponseMetadata {
             upgraded_to_update_call: false,
-            response_verification_version: None,
+            response_verification_version: Some(2),
             internal_error: None,
         },
     );
 }
 
 #[rstest]
-#[case(ONE_CHUNK_ASSET_NAME)]
+#[case(TWO_CHUNKS_ASSET_NAME, 0)]
+#[case(TWO_CHUNKS_ASSET_NAME, 1)]
+#[case(SIX_CHUNKS_ASSET_NAME, 3)]
+#[case(SIX_CHUNKS_ASSET_NAME, 5)]
+fn test_corrupted_long_asset_request_fails(
+    #[case] asset_name: &str,
+    #[case] corrupted_chunk_index: usize,
+) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
+
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.install_canister(canister_id, wasm_bytes, vec![], None);
+
+    let url = pic.auto_progress();
+
+    let agent = Agent::builder().with_url(url).build().unwrap();
+    rt.block_on(async {
+        agent.fetch_root_key().await.unwrap();
+    });
+
+    let http_gateway = HttpGatewayClient::builder()
+        .with_agent(agent)
+        .build()
+        .unwrap();
+
+    let response = rt.block_on(async {
+        http_gateway
+            .request(HttpGatewayRequestArgs {
+                canister_id,
+                canister_request: Request::builder()
+                    .header(
+                        "Test-CorruptedChunkIndex",
+                        corrupted_chunk_index.to_string(),
+                    )
+                    .uri(format!("/{asset_name}"))
+                    .body(vec![])
+                    .unwrap(),
+            })
+            .send()
+            .await
+    });
+    let expected_status = match corrupted_chunk_index {
+        0 => 500,
+        _ => 200,
+    };
+    assert_eq!(response.canister_response.status(), expected_status);
+    rt.block_on(async {
+        let body_result = response.canister_response.into_body().collect().await;
+        if corrupted_chunk_index == 0 {
+            // If the first chunk is corrupted, the status indicates the failure
+            // and the full body contains the error message.
+            let body = body_result.expect("failed getting full body").to_bytes();
+            assert_eq!(
+                body,
+                "Response verification failed: Invalid response hashes"
+            );
+        } else {
+            // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
+            // but fetching the full body fails with an error for the corrupted chunk.
+            assert_matches!(body_result,
+                Err(e) if e.to_string().contains(&format!(
+                    "CertificateVerificationFailed for a chunk starting at {}",
+                    ASSET_CHUNK_SIZE*corrupted_chunk_index))
+            );
+        }
+    });
+}
+
+#[rstest]
+#[case(TWO_CHUNKS_ASSET_NAME, 0)]
+#[case(TWO_CHUNKS_ASSET_NAME, 1)]
+#[case(SIX_CHUNKS_ASSET_NAME, 3)]
+#[case(SIX_CHUNKS_ASSET_NAME, 5)]
+fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
+    #[case] asset_name: &str,
+    #[case] corrupted_chunk_index: usize,
+) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
+
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.install_canister(canister_id, wasm_bytes, vec![], None);
+
+    let url = pic.auto_progress();
+
+    let agent = Agent::builder().with_url(url).build().unwrap();
+    rt.block_on(async {
+        agent.fetch_root_key().await.unwrap();
+    });
+
+    let http_gateway = HttpGatewayClient::builder()
+        .with_agent(agent)
+        .build()
+        .unwrap();
+
+    let response = rt.block_on(async {
+        http_gateway
+            .request(HttpGatewayRequestArgs {
+                canister_id,
+                canister_request: Request::builder()
+                    .header(
+                        "Test-CorruptedCertificate",
+                        corrupted_chunk_index.to_string(),
+                    )
+                    .uri(format!("/{asset_name}"))
+                    .body(vec![])
+                    .unwrap(),
+            })
+            .send()
+            .await
+    });
+    let expected_status = match corrupted_chunk_index {
+        0 => 500,
+        _ => 200,
+    };
+    assert_eq!(response.canister_response.status(), expected_status);
+    rt.block_on(async {
+        let body_result = response.canister_response.into_body().collect().await;
+        if corrupted_chunk_index == 0 {
+            // If the first chunk is corrupted, the status indicates the failure
+            // and the full body contains the error message.
+            let body = body_result.expect("failed getting full body").to_bytes();
+            assert_matches!(String::from_utf8_lossy(&body), s if s.contains("Response verification failed"));
+        } else {
+            // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
+            // but fetching the full body fails with an error for the corrupted chunk.
+            assert_matches!(body_result,
+                Err(e) if e.to_string().contains(&format!(
+                    "CertificateVerificationFailed for a chunk starting at {}",
+                    ASSET_CHUNK_SIZE*corrupted_chunk_index))
+            );
+        }
+    });
+}
+
+#[rstest]
 #[case(TWO_CHUNKS_ASSET_NAME)]
+#[case(SIX_CHUNKS_ASSET_NAME)]
 fn test_range_request_yields_range_response(#[case] asset_name: &str) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
@@ -205,7 +351,8 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
     });
 
     let expected_full_body = long_asset_body(asset_name);
-    let expected_response_body = &expected_full_body[ASSET_CHUNK_SIZE..];
+    let expected_response_body =
+        &expected_full_body[ASSET_CHUNK_SIZE..min(expected_full_body.len(), 2 * ASSET_CHUNK_SIZE)];
     let response_headers = response
         .canister_response
         .headers()
@@ -236,6 +383,7 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
     assert_eq!(
         certified_headers,
         vec![
+            ("content-length", expected_response_body.len().to_string().as_str()),
             ("strict-transport-security", "max-age=31536000; includeSubDomains"),
             ("x-frame-options", "DENY"),
             ("x-content-type-options", "nosniff"),
@@ -246,7 +394,6 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
             ("cross-origin-opener-policy", "same-origin"),
             ("cache-control", "public, no-cache, no-store"),
             ("content-type", "application/octet-stream"),
-            ("content-length", expected_response_body.len().to_string().as_str()),
             ("content-range", &format!(
                 "bytes {}-{}/{}",
                 ASSET_CHUNK_SIZE,
@@ -273,7 +420,7 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
         response.metadata,
         HttpGatewayResponseMetadata {
             upgraded_to_update_call: false,
-            response_verification_version: None,
+            response_verification_version: Some(2),
             internal_error: None,
         },
     );

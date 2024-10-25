@@ -8,8 +8,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid.workspace = true
+http.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
+regex.workspace = true
 serde.workspace = true
 serde_cbor.workspace = true
 sha2.workspace = true

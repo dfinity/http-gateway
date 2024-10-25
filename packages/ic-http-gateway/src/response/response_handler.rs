@@ -1,3 +1,4 @@
+use crate::protocol::validate;
 use crate::{HttpGatewayResponseBody, ResponseBodyStream};
 use bytes::Bytes;
 use candid::Principal;
@@ -5,7 +6,7 @@ use futures::{stream, Stream, StreamExt, TryStreamExt};
 use http_body::Frame;
 use http_body_util::{BodyExt, Full};
 use ic_agent::{Agent, AgentError};
-use ic_http_certification::HttpRequest;
+use ic_http_certification::{HttpRequest, HttpResponse};
 use ic_response_verification::MAX_VERIFICATION_VERSION;
 use ic_utils::interfaces::http_request::HeaderField;
 use ic_utils::{
@@ -132,6 +133,7 @@ struct StreamState<'a> {
     pub canister_id: Principal,
     pub total_length: usize,
     pub fetched_length: usize,
+    pub skip_verification: bool,
 }
 
 pub async fn get_206_stream_response_body_and_total_length(
@@ -140,6 +142,7 @@ pub async fn get_206_stream_response_body_and_total_length(
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
     response_206_body: HttpGatewayResponseBody,
+    skip_verification: bool,
 ) -> Result<(HttpGatewayResponseBody, usize), AgentError> {
     let HttpGatewayResponseBody::Right(body) = response_206_body else {
         return Err(AgentError::InvalidHttpResponse(
@@ -153,11 +156,16 @@ pub async fn get_206_stream_response_body_and_total_length(
         .expect("missing streamed chunk body")
         .to_bytes()
         .to_vec();
-    let stream_state = get_stream_state(http_request, canister_id, response_headers)?;
+    let stream_state = get_stream_state(
+        http_request,
+        canister_id,
+        response_headers,
+        skip_verification,
+    )?;
     let content_length = stream_state.total_length;
 
     let body_stream = create_206_body_stream(agent.clone(), stream_state, streamed_body);
-    return Ok((HttpGatewayResponseBody::Left(body_stream), content_length));
+    Ok((HttpGatewayResponseBody::Left(body_stream), content_length))
 }
 
 #[derive(Debug)]
@@ -194,11 +202,11 @@ fn parse_content_range_header_str(str_value: &str) -> Result<ContentRangeValues,
         .parse()
         .map_err(|_| AgentError::InvalidHttpResponse("malformed size".to_string()))?;
     // TODO: add sanity checks for the parsed values
-    return Ok(ContentRangeValues {
+    Ok(ContentRangeValues {
         range_begin,
         range_end,
         total_length,
-    });
+    })
 }
 
 fn get_content_range_header_str(
@@ -225,6 +233,7 @@ fn get_stream_state<'a>(
     http_request: HttpRequest<'a>,
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
+    skip_verification: bool,
 ) -> Result<StreamState<'a>, AgentError> {
     let range_values = get_content_range_values(response_headers)?;
 
@@ -236,6 +245,7 @@ fn get_stream_state<'a>(
             .range_end
             .saturating_sub(range_values.range_begin)
             + 1,
+        skip_verification,
     })
 }
 
@@ -295,7 +305,37 @@ fn create_206_stream(
                 .saturating_sub(range_values.range_begin)
                 + 1;
             let current_fetched_length = stream_state.fetched_length + chunk_length;
-            // TODO: verify the range response, once we can prepare certified chunks
+            // Verify the chunk from the range response.
+            if agent_response.streaming_strategy.is_some() {
+                return Err(AgentError::InvalidHttpResponse(
+                    "unexpected StreamingStrategy".to_string(),
+                ));
+            }
+            let response = HttpResponse::builder()
+                .with_status_code(agent_response.status_code)
+                .with_headers(
+                    agent_response
+                        .headers
+                        .iter()
+                        .map(|HeaderField(k, v)| (k.to_string(), v.to_string()))
+                        .collect(),
+                )
+                .with_body(agent_response.body.clone())
+                .build();
+            let validation_result = validate(
+                &agent,
+                &stream_state.canister_id,
+                stream_state.http_request.clone(),
+                response,
+                stream_state.skip_verification,
+            );
+
+            if let Err(e) = validation_result {
+                return Err(AgentError::InvalidHttpResponse(format!(
+                    "CertificateVerificationFailed for a chunk starting at {}, error: {}",
+                    stream_state.fetched_length, e
+                )));
+            }
             let maybe_new_state = if current_fetched_length < stream_state.total_length {
                 Some(StreamState {
                     fetched_length: current_fetched_length,
@@ -340,7 +380,7 @@ mod tests {
         for v in header_values {
             let input = format!("bytes {}-{}/{}", v.range_begin, v.range_end, v.total_length);
             let result = parse_content_range_header_str(&input);
-            let output = result.expect(&format!("failed parsing '{}'", input));
+            let output = result.unwrap_or_else(|_| panic!("failed parsing '{}'", input));
             assert_eq!(v.range_begin, output.range_begin);
             assert_eq!(v.range_end, output.range_end);
             assert_eq!(v.total_length, output.total_length);
@@ -358,7 +398,7 @@ mod tests {
             "bytes dead-beef/123456",
         ];
         for input in malformed_inputs {
-            let result = parse_content_range_header_str(&input);
+            let result = parse_content_range_header_str(input);
             assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
         }
     }
@@ -374,12 +414,19 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 2-4/10"), // fetched 3 bytes, total length is 10
         )];
-        let state = get_stream_state(http_request.clone(), canister_id, &response_headers)
-            .expect("failed constructing StreamState");
+        let skip_verification = false;
+        let state = get_stream_state(
+            http_request.clone(),
+            canister_id,
+            &response_headers,
+            skip_verification,
+        )
+        .expect("failed constructing StreamState");
         assert_eq!(state.http_request, http_request);
         assert_eq!(state.canister_id, canister_id);
         assert_eq!(state.fetched_length, 3);
         assert_eq!(state.total_length, 10);
+        assert_eq!(state.skip_verification, skip_verification);
     }
 
     #[test]
@@ -393,7 +440,7 @@ mod tests {
             Cow::from("other header"),
             Cow::from("other value"),
         )];
-        let result = get_stream_state(http_request, canister_id, &response_headers);
+        let result = get_stream_state(http_request, canister_id, &response_headers, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("missing Content-Range header"));
     }
 
@@ -408,7 +455,7 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 42/10"),
         )];
-        let result = get_stream_state(http_request, canister_id, &response_headers);
+        let result = get_stream_state(http_request, canister_id, &response_headers, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
     }
 }
