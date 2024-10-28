@@ -41,3 +41,6 @@ pocket-ic.workspace = true
 reqwest = "0.12.8"
 testcontainers = "0.23.1"
 tokio.workspace = true
+rand_chacha.workspace = true
+rstest.workspace = true
+sha2.workspace = true
