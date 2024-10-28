@@ -438,6 +438,14 @@ fn handle_agent_error(error: &AgentError) -> CanisterResponse {
             "Response size exceeds limit",
         ),
 
+        AgentError::HttpError(payload) => match StatusCode::from_u16(payload.status) {
+            Ok(status) => create_err_response(status, &format!("{:?}", payload)),
+            Err(_) => create_err_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Received invalid status code {:?}", payload),
+            ),
+        },
+
         // Handle all other errors
         _ => create_err_response(
             StatusCode::INTERNAL_SERVER_ERROR,
