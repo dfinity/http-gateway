@@ -3,7 +3,9 @@ use ic_cdk::{
     api::{data_certificate, set_certified_data},
     *,
 };
-use ic_http_certification::{HeaderField, HttpRequest, HttpResponse, HttpResponseBuilder};
+use ic_http_certification::{
+    HeaderField, HttpRequest, HttpRequestBuilder, HttpResponse, HttpResponseBuilder,
+};
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::cell::RefCell;
@@ -18,6 +20,13 @@ fn post_upgrade() {
     init();
 }
 
+// In addition to serving configured assets, the canister supports various
+// corruption scenarios for testing purposes.  Specifically, the caller
+// can use one of the following custom HTTP headers to make the canister
+// "misbehave" in various ways:
+// - "Test-CorruptChunkAtIndex"
+// - "Test-CorruptCertificateAtIndex"
+// - "Test-SwapChunkAtIndexWithNext"
 #[query]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let mut response = serve_asset(&req);
@@ -58,6 +67,37 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 .build();
         }
     }
+    if let Some(chunk_to_swap) = chunk_swap_requested(&req) {
+        let current_chunk = current_chunk_index(&response);
+        if current_chunk == chunk_to_swap {
+            // Create a request for the next chunk.
+            let next_chunk_req = HttpRequestBuilder::new()
+                .with_method(req.method())
+                .with_url(req.url())
+                .with_body(req.body())
+                .with_certificate_version(req.certificate_version().unwrap_or(2))
+                .with_headers({
+                    let mut headers = req.headers().to_owned();
+                    let mut range_updated = false;
+                    let new_range_value =
+                        format!("bytes={}-", (chunk_to_swap + 1) * ASSET_CHUNK_SIZE);
+                    for (key, value) in headers.iter_mut() {
+                        if key == "Range" {
+                            value.clear();
+                            value.push_str(&new_range_value);
+                            range_updated = true;
+                        }
+                    }
+                    if !range_updated {
+                        // The request had no Range-header, insert one.
+                        headers.push(("Range".to_string(), new_range_value));
+                    }
+                    headers.to_vec()
+                })
+                .build();
+            response = serve_asset(&next_chunk_req);
+        }
+    }
     response
 }
 
@@ -71,7 +111,7 @@ fn current_chunk_index(resp: &HttpResponse) -> usize {
 }
 
 fn chunk_corruption_requested(req: &HttpRequest) -> Option<usize> {
-    if let Some(corrupted_chunk_index) = get_header_value(req.headers(), "Test-CorruptedChunkIndex")
+    if let Some(corrupted_chunk_index) = get_header_value(req.headers(), "Test-CorruptChunkAtIndex")
     {
         Some(
             corrupted_chunk_index
@@ -85,12 +125,26 @@ fn chunk_corruption_requested(req: &HttpRequest) -> Option<usize> {
 
 fn cert_corruption_requested(req: &HttpRequest) -> Option<usize> {
     if let Some(corrupted_cert_chunk_index) =
-        get_header_value(req.headers(), "Test-CorruptedCertificate")
+        get_header_value(req.headers(), "Test-CorruptCertificateAtIndex")
     {
         Some(
             corrupted_cert_chunk_index
                 .parse()
                 .expect("invalid index of chunk to corrupt the certificate"),
+        )
+    } else {
+        None
+    }
+}
+
+fn chunk_swap_requested(req: &HttpRequest) -> Option<usize> {
+    if let Some(chunk_index_to_swap) =
+        get_header_value(req.headers(), "Test-SwapChunkAtIndexWithNext")
+    {
+        Some(
+            chunk_index_to_swap
+                .parse()
+                .expect("invalid index of chunk to swap"),
         )
     } else {
         None

@@ -156,7 +156,7 @@ pub async fn get_206_stream_response_body_and_total_length(
         .expect("missing streamed chunk body")
         .to_bytes()
         .to_vec();
-    let stream_state = get_stream_state(
+    let stream_state = get_initial_stream_state(
         http_request,
         canister_id,
         response_headers,
@@ -201,12 +201,19 @@ fn parse_content_range_header_str(str_value: &str) -> Result<ContentRangeValues,
         .as_str()
         .parse()
         .map_err(|_| AgentError::InvalidHttpResponse("malformed size".to_string()))?;
-    // TODO: add sanity checks for the parsed values
-    Ok(ContentRangeValues {
+    let range_values = ContentRangeValues {
         range_begin,
         range_end,
         total_length,
-    })
+    };
+    if range_begin > range_end || range_begin >= total_length || range_end >= total_length {
+        Err(AgentError::InvalidHttpResponse(format!(
+            "inconsistent Content-Range header {:?}",
+            range_values
+        )))
+    } else {
+        Ok(range_values)
+    }
 }
 
 fn get_content_range_header_str(
@@ -224,18 +231,33 @@ fn get_content_range_header_str(
 
 fn get_content_range_values(
     response_headers: &Vec<HeaderField<'static>>,
+    fetched_length: usize,
 ) -> Result<ContentRangeValues, AgentError> {
     let str_value = get_content_range_header_str(response_headers)?;
-    parse_content_range_header_str(&str_value)
+    let range_values = parse_content_range_header_str(&str_value)?;
+    // ic_cdk::println!("--- range values: {:?}", range_values);
+    if range_values.range_begin > fetched_length {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "chunk out-of-order: range_begin={} is larger than expected begin={} ",
+            range_values.range_begin, fetched_length
+        )));
+    }
+    if range_values.range_end < fetched_length {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "chunk out-of-order: range_end={} is smaller than length fetched so far={} ",
+            range_values.range_begin, fetched_length
+        )));
+    }
+    Ok(range_values)
 }
 
-fn get_stream_state<'a>(
+fn get_initial_stream_state<'a>(
     http_request: HttpRequest<'a>,
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
     skip_verification: bool,
 ) -> Result<StreamState<'a>, AgentError> {
-    let range_values = get_content_range_values(response_headers)?;
+    let range_values = get_content_range_values(response_headers, 0)?;
 
     Ok(StreamState {
         http_request,
@@ -299,10 +321,14 @@ fn create_206_stream(
                 Ok((response,)) => response,
                 Err(e) => return Err(e),
             };
-            let range_values = get_content_range_values(&agent_response.headers)?;
+            let range_values =
+                get_content_range_values(&agent_response.headers, stream_state.fetched_length)?;
+            let new_bytes_begin = stream_state
+                .fetched_length
+                .saturating_sub(range_values.range_begin);
             let chunk_length = range_values
                 .range_end
-                .saturating_sub(range_values.range_begin)
+                .saturating_sub(stream_state.fetched_length)
                 + 1;
             let current_fetched_length = stream_state.fetched_length + chunk_length;
             // Verify the chunk from the range response.
@@ -345,7 +371,10 @@ fn create_206_stream(
                 None
             };
             Ok(Some((
-                (agent_response.body, maybe_new_state.clone()),
+                (
+                    agent_response.body[new_bytes_begin..].to_vec(),
+                    maybe_new_state.clone(),
+                ),
                 (agent, maybe_new_state),
             )))
         },
@@ -404,7 +433,16 @@ mod tests {
     }
 
     #[test]
-    fn should_get_stream_state() {
+    fn should_fail_parse_content_range_header_str_on_inconsistent_input() {
+        let inconsistent_inputs = ["bytes 100-200/190", "bytes 200-150/400", "bytes 100-110/40"];
+        for input in inconsistent_inputs {
+            let result = parse_content_range_header_str(input);
+            assert_matches!(result, Err(e) if format!("{}", e).contains("inconsistent Content-Range header"));
+        }
+    }
+
+    #[test]
+    fn should_get_initial_stream_state() {
         let http_request = HttpRequest::get("http://example.com/some_file")
             .with_headers(vec![("Xyz".to_string(), "some value".to_string())])
             .with_body(vec![42])
@@ -412,10 +450,10 @@ mod tests {
         let canister_id = Principal::from_slice(&[1, 2, 3, 4]);
         let response_headers = vec![HeaderField(
             Cow::from("Content-Range"),
-            Cow::from("bytes 2-4/10"), // fetched 3 bytes, total length is 10
+            Cow::from("bytes 0-2/10"), // fetched 3 bytes, total length is 10
         )];
         let skip_verification = false;
-        let state = get_stream_state(
+        let state = get_initial_stream_state(
             http_request.clone(),
             canister_id,
             &response_headers,
@@ -430,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn should_fail_get_stream_state_without_content_range_header() {
+    fn should_fail_get_initial_stream_state_without_content_range_header() {
         let http_request = HttpRequest::get("http://example.com/some_file")
             .with_headers(vec![("Xyz".to_string(), "some value".to_string())])
             .with_body(vec![42])
@@ -440,12 +478,12 @@ mod tests {
             Cow::from("other header"),
             Cow::from("other value"),
         )];
-        let result = get_stream_state(http_request, canister_id, &response_headers, false);
+        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("missing Content-Range header"));
     }
 
     #[test]
-    fn should_fail_get_stream_state_with_malformed_content_range_header() {
+    fn should_fail_get_initial_stream_state_with_malformed_content_range_header() {
         let http_request = HttpRequest::get("http://example.com/some_file")
             .with_headers(vec![("Xyz".to_string(), "some value".to_string())])
             .with_body(vec![42])
@@ -455,7 +493,22 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 42/10"),
         )];
-        let result = get_stream_state(http_request, canister_id, &response_headers, false);
+        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
+    }
+
+    #[test]
+    fn should_fail_get_initial_stream_state_with_inconsistent_content_range_header() {
+        let http_request = HttpRequest::get("http://example.com/some_file")
+            .with_headers(vec![("Xyz".to_string(), "some value".to_string())])
+            .with_body(vec![42])
+            .build();
+        let canister_id = Principal::from_slice(&[1, 2, 3, 4]);
+        let response_headers = vec![HeaderField(
+            Cow::from("Content-Range"),
+            Cow::from("bytes 40-100/90"),
+        )];
+        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
+        assert_matches!(result, Err(e) if format!("{}", e).contains("inconsistent Content-Range header"));
     }
 }
