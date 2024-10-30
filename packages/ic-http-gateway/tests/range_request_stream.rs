@@ -198,7 +198,7 @@ fn test_corrupted_long_asset_request_fails(
                 canister_id,
                 canister_request: Request::builder()
                     .header(
-                        "Test-CorruptedChunkIndex",
+                        "Test-CorruptChunkAtIndex",
                         corrupted_chunk_index.to_string(),
                     )
                     .uri(format!("/{asset_name}"))
@@ -218,10 +218,9 @@ fn test_corrupted_long_asset_request_fails(
         if corrupted_chunk_index == 0 {
             // If the first chunk is corrupted, the status indicates the failure
             // and the full body contains the error message.
-            let body = body_result.expect("failed getting full body").to_bytes();
-            assert_eq!(
-                body,
-                "Response verification failed: Invalid response hashes"
+            assert_matches!(body_result,
+                Ok(body) if format!("{:?}", body).contains(
+                "Response verification failed: Invalid response hashes")
             );
         } else {
             // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
@@ -230,6 +229,77 @@ fn test_corrupted_long_asset_request_fails(
                 Err(e) if e.to_string().contains(&format!(
                     "CertificateVerificationFailed for a chunk starting at {}",
                     ASSET_CHUNK_SIZE*corrupted_chunk_index))
+            );
+        }
+    });
+}
+
+#[rstest]
+#[case(TWO_CHUNKS_ASSET_NAME, 0)]
+#[case(SIX_CHUNKS_ASSET_NAME, 3)]
+fn test_long_asset_with_chunks_out_of_order_fails(
+    #[case] asset_name: &str,
+    #[case] chunk_to_swap: usize,
+) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
+
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.install_canister(canister_id, wasm_bytes, vec![], None);
+
+    let url = pic.auto_progress();
+
+    let agent = Agent::builder().with_url(url).build().unwrap();
+    rt.block_on(async {
+        agent.fetch_root_key().await.unwrap();
+    });
+
+    let http_gateway = HttpGatewayClient::builder()
+        .with_agent(agent)
+        .build()
+        .unwrap();
+
+    let response = rt.block_on(async {
+        http_gateway
+            .request(HttpGatewayRequestArgs {
+                canister_id,
+                canister_request: Request::builder()
+                    .header("Test-SwapChunkAtIndexWithNext", chunk_to_swap.to_string())
+                    .uri(format!("/{asset_name}"))
+                    .body(vec![])
+                    .unwrap(),
+            })
+            .send()
+            .await
+    });
+    let expected_status = match chunk_to_swap {
+        0 => 500,
+        _ => 200,
+    };
+    assert_eq!(response.canister_response.status(), expected_status);
+    rt.block_on(async {
+        let body_result = response.canister_response.into_body().collect().await;
+        if chunk_to_swap == 0 {
+            // If the first chunk is corrupted, the status indicates the failure
+            // and the full body contains the error message.
+            assert_matches!(body_result,
+                Ok(body) if format!("{:?}", body).contains(&format!(
+                    "chunk out-of-order: range_begin={}",
+                    ASSET_CHUNK_SIZE*(chunk_to_swap+1)))
+            );
+        } else {
+            // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
+            // but fetching the full body fails with an error for the corrupted chunk.
+            assert_matches!(body_result,
+                Err(e) if e.to_string().contains(&format!(
+                    "chunk out-of-order: range_begin={}",
+                    ASSET_CHUNK_SIZE*(chunk_to_swap+1)))
             );
         }
     });
@@ -274,7 +344,7 @@ fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
                 canister_id,
                 canister_request: Request::builder()
                     .header(
-                        "Test-CorruptedCertificate",
+                        "Test-CorruptCertificateAtIndex",
                         corrupted_chunk_index.to_string(),
                     )
                     .uri(format!("/{asset_name}"))
