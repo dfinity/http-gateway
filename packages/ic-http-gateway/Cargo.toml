@@ -26,7 +26,7 @@ http.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
 bytes.workspace = true
-regex.workspace = true
+text_io.workspace = true
 
 ic-agent.workspace = true
 ic-utils.workspace = true

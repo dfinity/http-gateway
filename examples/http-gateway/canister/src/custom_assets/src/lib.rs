@@ -9,6 +9,7 @@ use ic_http_certification::{
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::cell::RefCell;
+use text_io::try_scan;
 
 #[init]
 fn init() {
@@ -162,15 +163,16 @@ fn get_header_value(headers: &[HeaderField], header_name: &str) -> Option<String
 
 fn get_content_range_begin(content_range_header_value: &str) -> usize {
     // expected format: `bytes 21010-47021/47022`
-    let re = regex::Regex::new(r"bytes\s+(\d+)-(\d+)/(\d+)").expect("invalid RE");
-    let caps = re
-        .captures(content_range_header_value)
-        .expect("malformed Content-Range header");
-    caps.get(1)
-        .expect("missing range-begin")
-        .as_str()
-        .parse()
-        .expect("malformed range-begin")
+    fn parse(value: &str) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
+        let (range_begin, range_end, total_length);
+        try_scan!(value.bytes() => "bytes {}-{}/{}", range_begin, range_end, total_length);
+        Ok((range_begin, range_end, total_length))
+    }
+    let parsed = parse(content_range_header_value).expect(&format!(
+        "invalid Content-Range header: {}",
+        content_range_header_value
+    ));
+    parsed.0
 }
 
 thread_local! {

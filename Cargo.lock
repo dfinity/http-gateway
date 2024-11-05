@@ -1120,10 +1120,10 @@ dependencies = [
  "include_dir",
  "lazy_static",
  "rand_chacha",
- "regex",
  "serde",
  "serde_cbor",
  "sha2 0.10.8",
+ "text_io",
 ]
 
 [[package]]
@@ -1448,11 +1448,11 @@ dependencies = [
  "ic-utils",
  "pocket-ic",
  "rand_chacha",
- "regex",
  "reqwest",
  "rstest",
  "sha2 0.10.8",
  "testcontainers",
+ "text_io",
  "thiserror",
  "tokio",
 ]
@@ -3005,6 +3005,12 @@ dependencies = [
  "tokio-util",
  "url",
 ]
+
+[[package]]
+name = "text_io"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5f0c8eb2ad70c12a6a69508f499b3051c924f4b1cfeae85bfad96e6bc5bba46"
 
 [[package]]
 name = "thiserror"

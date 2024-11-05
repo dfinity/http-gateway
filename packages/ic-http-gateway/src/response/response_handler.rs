@@ -16,7 +16,7 @@ use ic_utils::{
         StreamingCallbackHttpResponse, StreamingStrategy, Token,
     },
 };
-use regex::Regex;
+use text_io::try_scan;
 
 // Limit the total number of calls to an HTTP Request loop to 1000 for now.
 static MAX_HTTP_REQUEST_STREAM_CALLBACK_CALL_COUNT: usize = 1000;
@@ -177,42 +177,29 @@ struct ContentRangeValues {
 
 fn parse_content_range_header_str(str_value: &str) -> Result<ContentRangeValues, AgentError> {
     // expected format: `bytes 21010-47021/47022`
-    let re = Regex::new(r"bytes\s+(\d+)-(\d+)/(\d+)").unwrap();
-    let Some(caps) = re.captures(str_value) else {
-        return Err(AgentError::InvalidHttpResponse(
-            "malformed Content-Range header".to_string(),
-        ));
+    fn parse(value: &str) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
+        let (range_begin, range_end, total_length);
+        try_scan!(value.bytes() => "bytes {}-{}/{}", range_begin, range_end, total_length);
+        Ok((range_begin, range_end, total_length))
+    }
+    let parsed = parse(str_value).map_err(|e| {
+        AgentError::InvalidHttpResponse(format!("malformed Content-Range header: {:?}", e))
+    })?;
+    let rv = ContentRangeValues {
+        range_begin: parsed.0,
+        range_end: parsed.1,
+        total_length: parsed.2,
     };
-    let range_begin: usize = caps
-        .get(1)
-        .ok_or_else(|| AgentError::InvalidHttpResponse("missing range-begin".to_string()))?
-        .as_str()
-        .parse()
-        .map_err(|_| AgentError::InvalidHttpResponse("malformed range-begin".to_string()))?;
-    let range_end: usize = caps
-        .get(2)
-        .ok_or_else(|| AgentError::InvalidHttpResponse("missing range-end".to_string()))?
-        .as_str()
-        .parse()
-        .map_err(|_| AgentError::InvalidHttpResponse("malformed range-end".to_string()))?;
-    let total_length: usize = caps
-        .get(3)
-        .ok_or_else(|| AgentError::InvalidHttpResponse("missing size".to_string()))?
-        .as_str()
-        .parse()
-        .map_err(|_| AgentError::InvalidHttpResponse("malformed size".to_string()))?;
-    let range_values = ContentRangeValues {
-        range_begin,
-        range_end,
-        total_length,
-    };
-    if range_begin > range_end || range_begin >= total_length || range_end >= total_length {
+    if rv.range_begin > rv.range_end
+        || rv.range_begin >= rv.total_length
+        || rv.range_end >= rv.total_length
+    {
         Err(AgentError::InvalidHttpResponse(format!(
             "inconsistent Content-Range header {:?}",
-            range_values
+            rv
         )))
     } else {
-        Ok(range_values)
+        Ok(rv)
     }
 }
 
