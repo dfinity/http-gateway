@@ -16,7 +16,6 @@ use ic_utils::{
         StreamingCallbackHttpResponse, StreamingStrategy, Token,
     },
 };
-use text_io::try_scan;
 
 // Limit the total number of calls to an HTTP Request loop to 1000 for now.
 static MAX_HTTP_REQUEST_STREAM_CALLBACK_CALL_COUNT: usize = 1000;
@@ -175,28 +174,65 @@ struct ContentRangeValues {
     pub total_length: usize,
 }
 
-fn parse_content_range_header_str(str_value: &str) -> Result<ContentRangeValues, AgentError> {
+fn parse_content_range_header_str(
+    content_range_str: &str,
+) -> Result<ContentRangeValues, AgentError> {
     // expected format: `bytes 21010-47021/47022`
-    fn parse(value: &str) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
-        let (range_begin, range_end, total_length);
-        try_scan!(value.bytes() => "bytes {}-{}/{}", range_begin, range_end, total_length);
-        Ok((range_begin, range_end, total_length))
+    let str_value = content_range_str.trim();
+    if !str_value.starts_with("bytes ") {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "Invalid Content-Range header '{}'",
+            content_range_str
+        )));
     }
-    let parsed = parse(str_value).map_err(|e| {
-        AgentError::InvalidHttpResponse(format!("malformed Content-Range header: {:?}", e))
+    let str_value = str_value.trim_start_matches("bytes ");
+
+    let str_value_parts = str_value.split('-').collect::<Vec<_>>();
+    if str_value_parts.len() != 2 {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "Invalid bytes spec in Content-Range header '{}'",
+            content_range_str
+        )));
+    }
+    let range_begin = str_value_parts[0].parse::<usize>().map_err(|e| {
+        AgentError::InvalidHttpResponse(format!(
+            "Invalid range_begin in '{}': {}",
+            content_range_str, e
+        ))
     })?;
+
+    let other_value_parts = str_value_parts[1].split('/').collect::<Vec<_>>();
+    if other_value_parts.len() != 2 {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "Invalid bytes spec in Content-Range header '{}'",
+            content_range_str
+        )));
+    }
+    let range_end = other_value_parts[0].parse::<usize>().map_err(|e| {
+        AgentError::InvalidHttpResponse(format!(
+            "Invalid range_end in '{}': {}",
+            content_range_str, e
+        ))
+    })?;
+    let total_length = other_value_parts[1].parse::<usize>().map_err(|e| {
+        AgentError::InvalidHttpResponse(format!(
+            "Invalid total_length in '{}': {}",
+            content_range_str, e
+        ))
+    })?;
+
     let rv = ContentRangeValues {
-        range_begin: parsed.0,
-        range_end: parsed.1,
-        total_length: parsed.2,
+        range_begin,
+        range_end,
+        total_length,
     };
     if rv.range_begin > rv.range_end
         || rv.range_begin >= rv.total_length
         || rv.range_end >= rv.total_length
     {
         Err(AgentError::InvalidHttpResponse(format!(
-            "inconsistent Content-Range header {:?}",
-            rv
+            "inconsistent Content-Range header {}: {:?}",
+            content_range_str, rv
         )))
     } else {
         Ok(rv)
@@ -415,7 +451,7 @@ mod tests {
         ];
         for input in malformed_inputs {
             let result = parse_content_range_header_str(input);
-            assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
+            assert_matches!(result, Err(e) if format!("{}", e).contains("Invalid "));
         }
     }
 
@@ -481,7 +517,7 @@ mod tests {
             Cow::from("bytes 42/10"),
         )];
         let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
-        assert_matches!(result, Err(e) if format!("{}", e).contains("malformed Content-Range header"));
+        assert_matches!(result, Err(e) if format!("{}", e).contains("Invalid bytes spec in Content-Range header"));
     }
 
     #[test]

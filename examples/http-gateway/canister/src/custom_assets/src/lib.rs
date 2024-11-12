@@ -9,7 +9,6 @@ use ic_http_certification::{
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::cell::RefCell;
-use text_io::try_scan;
 
 #[init]
 fn init() {
@@ -163,16 +162,28 @@ fn get_header_value(headers: &[HeaderField], header_name: &str) -> Option<String
 
 fn get_content_range_begin(content_range_header_value: &str) -> usize {
     // expected format: `bytes 21010-47021/47022`
-    fn parse(value: &str) -> Result<(usize, usize, usize), Box<dyn std::error::Error>> {
-        let (range_begin, range_end, total_length);
-        try_scan!(value.bytes() => "bytes {}-{}/{}", range_begin, range_end, total_length);
-        Ok((range_begin, range_end, total_length))
+    let str_value = content_range_header_value.trim();
+    if !str_value.starts_with("bytes ") {
+        panic!(
+            "Invalid Content-Range header: {}",
+            content_range_header_value
+        );
     }
-    let parsed = parse(content_range_header_value).expect(&format!(
-        "invalid Content-Range header: {}",
+    let str_value = str_value.trim_start_matches("bytes ");
+
+    let str_value_parts = str_value.split('-').collect::<Vec<_>>();
+    if str_value_parts.len() != 2 {
+        panic!(
+            "Invalid bytes spec in Content-Range header: {}",
+            content_range_header_value
+        );
+    }
+    let range_begin = str_value_parts[0].parse::<usize>().expect(&format!(
+        "Invalid range_begin in: {}",
         content_range_header_value
     ));
-    parsed.0
+    // Note: skipping the check whether range_end and total_length are sane.
+    range_begin
 }
 
 thread_local! {
