@@ -162,15 +162,28 @@ fn get_header_value(headers: &[HeaderField], header_name: &str) -> Option<String
 
 fn get_content_range_begin(content_range_header_value: &str) -> usize {
     // expected format: `bytes 21010-47021/47022`
-    let re = regex::Regex::new(r"bytes\s+(\d+)-(\d+)/(\d+)").expect("invalid RE");
-    let caps = re
-        .captures(content_range_header_value)
-        .expect("malformed Content-Range header");
-    caps.get(1)
-        .expect("missing range-begin")
-        .as_str()
-        .parse()
-        .expect("malformed range-begin")
+    let str_value = content_range_header_value.trim();
+    if !str_value.starts_with("bytes ") {
+        panic!(
+            "Invalid Content-Range header: {}",
+            content_range_header_value
+        );
+    }
+    let str_value = str_value.trim_start_matches("bytes ");
+
+    let str_value_parts = str_value.split('-').collect::<Vec<_>>();
+    if str_value_parts.len() != 2 {
+        panic!(
+            "Invalid bytes spec in Content-Range header: {}",
+            content_range_header_value
+        );
+    }
+    let range_begin = str_value_parts[0].parse::<usize>().expect(&format!(
+        "Invalid range_begin in: {}",
+        content_range_header_value
+    ));
+    // Note: skipping the check whether range_end and total_length are sane.
+    range_begin
 }
 
 thread_local! {
