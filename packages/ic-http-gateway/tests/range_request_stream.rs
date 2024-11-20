@@ -1,4 +1,5 @@
 use assert_matches::assert_matches;
+use bytes::Bytes;
 use http::Request;
 use http_body_util::BodyExt;
 use ic_agent::hash_tree::Hash;
@@ -83,7 +84,7 @@ fn test_long_asset_request_yields_entire_asset(#[case] asset_name: &str) {
                 canister_id,
                 canister_request: Request::builder()
                     .uri(format!("/{asset_name}"))
-                    .body(vec![])
+                    .body(Bytes::new())
                     .unwrap(),
             })
             .send()
@@ -202,7 +203,7 @@ fn test_corrupted_long_asset_request_fails(
                         corrupted_chunk_index.to_string(),
                     )
                     .uri(format!("/{asset_name}"))
-                    .body(vec![])
+                    .body(Bytes::new())
                     .unwrap(),
             })
             .send()
@@ -272,7 +273,7 @@ fn test_long_asset_with_chunks_out_of_order_fails(
                 canister_request: Request::builder()
                     .header("Test-SwapChunkAtIndexWithNext", chunk_to_swap.to_string())
                     .uri(format!("/{asset_name}"))
-                    .body(vec![])
+                    .body(Bytes::new())
                     .unwrap(),
             })
             .send()
@@ -348,7 +349,7 @@ fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
                         corrupted_chunk_index.to_string(),
                     )
                     .uri(format!("/{asset_name}"))
-                    .body(vec![])
+                    .body(Bytes::new())
                     .unwrap(),
             })
             .send()
@@ -413,7 +414,7 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
                 canister_request: Request::builder()
                     .uri(format!("/{asset_name}"))
                     .header("Range", format!("bytes={}-", ASSET_CHUNK_SIZE))
-                    .body(vec![])
+                    .body(Bytes::new())
                     .unwrap(),
             })
             .send()

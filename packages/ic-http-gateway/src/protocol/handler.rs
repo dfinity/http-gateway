@@ -457,6 +457,7 @@ fn handle_agent_error(error: &AgentError) -> CanisterResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bytes::Bytes;
     use http::Request;
 
     #[test]
@@ -465,7 +466,7 @@ mod tests {
             .uri("http://example.com/foo/bar/baz?q=hello+world&t=1")
             .header("Accept", "text/html")
             .header("Accept-Encoding", "gzip, deflate, br, zstd")
-            .body(b"body".to_vec())
+            .body(Bytes::from("body"))
             .unwrap();
 
         let http_request = convert_request(request).unwrap();

@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use http::Request;
 use http_body_util::BodyExt;
 use ic_agent::Agent;
@@ -36,7 +37,7 @@ fn test_custom_assets_index_html() {
         http_gateway
             .request(HttpGatewayRequestArgs {
                 canister_id,
-                canister_request: Request::builder().uri("/").body(vec![]).unwrap(),
+                canister_request: Request::builder().uri("/").body(Bytes::new()).unwrap(),
             })
             .send()
             .await

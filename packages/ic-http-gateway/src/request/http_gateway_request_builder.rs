@@ -1,4 +1,5 @@
 use crate::{protocol::process_request, HttpGatewayResponse};
+use bytes::Bytes;
 use candid::Principal;
 use http::Request;
 use ic_agent::Agent;
@@ -11,7 +12,7 @@ pub struct HttpGatewayRequestArgs {
     pub canister_id: Principal,
 }
 
-pub type CanisterRequest = Request<Vec<u8>>;
+pub type CanisterRequest = Request<Bytes>;
 
 pub struct HttpGatewayRequestBuilderArgs<'a> {
     pub request_args: HttpGatewayRequestArgs,

@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use http::{status::StatusCode, Request};
 use ic_agent::{export::Principal, Agent};
 use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs};
@@ -71,7 +72,7 @@ async fn test_rate_limiting_error() -> Result<(), Box<dyn std::error::Error>> {
     let canister_request = Request::builder()
         .uri("/example")
         .method("GET")
-        .body(Vec::<u8>::new())
+        .body(Bytes::new())
         .unwrap();
 
     let gateway_response = http_gateway
