@@ -71,7 +71,7 @@ fn main() {
 
                 async move {
                     let canister_request = Request::builder().uri(req.uri()).method(req.method());
-                    let collected_req = req.collect().await.unwrap().to_bytes().to_vec();
+                    let collected_req = req.collect().await.unwrap().to_bytes();
                     let canister_request = canister_request.body(collected_req).unwrap();
 
                     let gateway_response = http_gateway_clone
