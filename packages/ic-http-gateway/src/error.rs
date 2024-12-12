@@ -1,6 +1,8 @@
 //! The error module contains types for common errors that may be thrown
 //! by other modules in this crate.
 
+use ic_agent::AgentError;
+use ic_response_verification::ResponseVerificationError;
 use std::sync::Arc;
 
 /// HTTP gateway result type.
@@ -10,15 +12,15 @@ pub type HttpGatewayResult<T = ()> = Result<T, HttpGatewayError>;
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum HttpGatewayError {
     #[error(transparent)]
-    ResponseVerificationError(#[from] ic_response_verification::ResponseVerificationError),
+    ResponseVerificationError(#[from] ResponseVerificationError),
 
     /// Inner error from agent.
     #[error(transparent)]
-    AgentError(#[from] Arc<ic_agent::AgentError>),
+    AgentError(#[from] Arc<AgentError>),
 
     /// HTTP error.
-    #[error(r#"HTTP error: "{0}""#)]
-    HttpError(String),
+    #[error(transparent)]
+    HttpError(#[from] Arc<http::Error>),
 
     #[error(r#"Failed to parse the "{header_name}" header value: "{header_value:?}""#)]
     HeaderValueParsingError {
@@ -27,20 +29,14 @@ pub enum HttpGatewayError {
     },
 }
 
-impl From<ic_agent::AgentError> for HttpGatewayError {
-    fn from(err: ic_agent::AgentError) -> Self {
+impl From<AgentError> for HttpGatewayError {
+    fn from(err: AgentError) -> Self {
         HttpGatewayError::AgentError(Arc::new(err))
     }
 }
 
 impl From<http::Error> for HttpGatewayError {
     fn from(err: http::Error) -> Self {
-        HttpGatewayError::HttpError(err.to_string())
-    }
-}
-
-impl From<http::status::InvalidStatusCode> for HttpGatewayError {
-    fn from(err: http::status::InvalidStatusCode) -> Self {
-        HttpGatewayError::HttpError(err.to_string())
+        HttpGatewayError::HttpError(Arc::new(err))
     }
 }
