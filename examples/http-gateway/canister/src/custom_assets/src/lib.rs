@@ -4,7 +4,7 @@ use ic_cdk::{
     *,
 };
 use ic_http_certification::{
-    HeaderField, HttpRequest, HttpRequestBuilder, HttpResponse, HttpResponseBuilder,
+    HeaderField, HttpRequest, HttpRequestBuilder, HttpResponse, HttpResponseBuilder, StatusCode,
 };
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -72,7 +72,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         if current_chunk == chunk_to_swap {
             // Create a request for the next chunk.
             let next_chunk_req = HttpRequestBuilder::new()
-                .with_method(req.method())
+                .with_method(req.method().clone())
                 .with_url(req.url())
                 .with_body(req.body())
                 .with_certificate_version(req.certificate_version().unwrap_or(2))
@@ -242,6 +242,7 @@ fn certify_all_assets() {
         )]),
         fallback_for: vec![AssetFallbackConfig {
             scope: "/".to_string(),
+            status_code: Some(StatusCode::OK),
         }],
         aliased_by: vec!["/".to_string()],
         encodings: vec![],

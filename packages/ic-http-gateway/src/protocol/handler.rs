@@ -37,7 +37,7 @@ fn convert_request(request: CanisterRequest) -> HttpGatewayResult<HttpRequest<'s
     }
 
     Ok(HttpRequest::builder()
-        .with_method(request.method().to_string())
+        .with_method(request.method().clone())
         .with_url(url)
         .with_headers(
             request
@@ -112,7 +112,7 @@ pub async fn process_request(
 
     let query_result = canister
         .http_request_custom(
-            http_request.method(),
+            http_request.method().as_str(),
             http_request.url(),
             header_fields.clone(),
             http_request.body(),
@@ -139,7 +139,7 @@ pub async fn process_request(
     let agent_response = if is_update_call {
         let update_result = canister
             .http_request_update_custom(
-                http_request.method(),
+                http_request.method().as_str(),
                 http_request.url(),
                 header_fields.clone(),
                 http_request.body(),
@@ -191,8 +191,24 @@ pub async fn process_request(
                 // this unwrap should never panic because `Either::Right` will always have a full body
                 let body = body.clone().collect().await.unwrap().to_bytes().to_vec();
 
+                let status_code = match StatusCode::from_u16(agent_response.status_code) {
+                    Ok(status) => status,
+                    Err(e) => {
+                        return HttpGatewayResponse {
+                            canister_response: create_err_response(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                &format!("Invalid canister response status code: {}", e),
+                            ),
+                            metadata: HttpGatewayResponseMetadata {
+                                upgraded_to_update_call: is_update_call,
+                                response_verification_version: None,
+                                internal_error: Some(e.into()),
+                            },
+                        };
+                    }
+                };
                 let response = HttpResponse::builder()
-                    .with_status_code(agent_response.status_code)
+                    .with_status_code(status_code)
                     .with_headers(
                         agent_response
                             .headers
@@ -241,8 +257,8 @@ pub async fn process_request(
         Err(e) => {
             return HttpGatewayResponse {
                 canister_response: create_err_response(
-                    StatusCode::BAD_REQUEST,
-                    &format!("Failed to parse response status code: {}", e),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Invalid canister response status code: {}", e),
                 ),
                 metadata: HttpGatewayResponseMetadata {
                     upgraded_to_update_call: is_update_call,

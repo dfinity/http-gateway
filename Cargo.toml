@@ -50,9 +50,9 @@ pocket-ic = "=3.0.0"
 assert_matches = "1.5"
 rstest = "0.18"
 
-ic-response-verification = { git = "https://github.com/dfinity/response-verification", rev="dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f" }
-ic-certification = { git = "https://github.com/dfinity/response-verification", rev="dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f" }
-ic-http-certification = { git = "https://github.com/dfinity/response-verification", rev="dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f" }
-ic-asset-certification = { git = "https://github.com/dfinity/response-verification", rev="dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f" }
+ic-response-verification = "3"
+ic-certification = "3"
+ic-http-certification = "3"
+ic-asset-certification = "3"
 
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0" }
