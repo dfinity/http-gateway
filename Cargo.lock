@@ -233,7 +233,7 @@ dependencies = [
  "futures-util",
  "hex",
  "home",
- "http 1.1.0",
+ "http",
  "http-body-util",
  "hyper",
  "hyper-named-pipe",
@@ -300,21 +300,6 @@ checksum = "9ac0150caa2ae65ca5bd83f25c7de183dea78d4d366469f148435e2acfbad0da"
 
 [[package]]
 name = "cached"
-version = "0.47.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b0116662497bc24e4b177c90eaf8870e39e2714c3fcfa296327a93f593fc21"
-dependencies = [
- "ahash",
- "cached_proc_macro",
- "cached_proc_macro_types",
- "hashbrown 0.14.5",
- "instant",
- "once_cell",
- "thiserror",
-]
-
-[[package]]
-name = "cached"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8466736fe5dbcaf8b8ee24f9bbefe43c884dc3e9ff7178da70f55bffca1133c"
@@ -327,15 +312,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "cached_proc_macro"
-version = "0.18.1"
+name = "cached"
+version = "0.54.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c878c71c2821aa2058722038a59a67583a4240524687c6028571c9b395ded61f"
+checksum = "9718806c4a2fe9e8a56fd736f97b340dd10ed1be8ed733ed50449f351dc33cae"
 dependencies = [
- "darling 0.14.4",
+ "ahash",
+ "cached_proc_macro",
+ "cached_proc_macro_types",
+ "hashbrown 0.14.5",
+ "once_cell",
+ "thiserror",
+ "web-time",
+]
+
+[[package]]
+name = "cached_proc_macro"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f42a145ed2d10dce2191e1dcf30cfccfea9026660e143662ba5eec4017d5daa"
+dependencies = [
+ "darling",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.85",
 ]
 
 [[package]]
@@ -508,36 +508,12 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b750cb3417fd1b327431a470f388520309479ab0bf5e323505daf0290cd3850"
-dependencies = [
- "darling_core 0.14.4",
- "darling_macro 0.14.4",
-]
-
-[[package]]
-name = "darling"
 version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f63b86c8a8826a49b8c21f08a2d07338eec8d900540f8630dc76284be802989"
 dependencies = [
- "darling_core 0.20.10",
- "darling_macro 0.20.10",
-]
-
-[[package]]
-name = "darling_core"
-version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "109c1ca6e6b7f82cc233a97004ea8ed7ca123a9af07a8230878fcfda9b158bf0"
-dependencies = [
- "fnv",
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim 0.10.0",
- "syn 1.0.109",
+ "darling_core",
+ "darling_macro",
 ]
 
 [[package]]
@@ -550,19 +526,8 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "strsim 0.11.1",
+ "strsim",
  "syn 2.0.85",
-]
-
-[[package]]
-name = "darling_macro"
-version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4aab4dbc9f7611d8b55048a3a16d2d010c2c8334e46304b40ac1cc14bf3b48e"
-dependencies = [
- "darling_core 0.14.4",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -571,7 +536,7 @@ version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d336a2a514f6ccccaa3e09b02d41d35330c07ddf03a62165fcec10bb561c7806"
 dependencies = [
- "darling_core 0.20.10",
+ "darling_core",
  "quote",
  "syn 2.0.85",
 ]
@@ -985,7 +950,7 @@ dependencies = [
  "fnv",
  "futures-core",
  "futures-sink",
- "http 1.1.0",
+ "http",
  "indexmap 2.6.0",
  "slab",
  "tokio",
@@ -1062,17 +1027,6 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "601cbb57e577e2f5ef5be8e7b83f0f63994f25aa94d673e54a92d5c516d101f1"
-dependencies = [
- "bytes",
- "fnv",
- "itoa",
-]
-
-[[package]]
-name = "http"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
@@ -1089,7 +1043,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
 dependencies = [
  "bytes",
- "http 1.1.0",
+ "http",
 ]
 
 [[package]]
@@ -1100,7 +1054,7 @@ checksum = "793429d76616a256bcb62c2a2ec2bed781c8307e797e2598c50010f2bee2544f"
 dependencies = [
  "bytes",
  "futures-util",
- "http 1.1.0",
+ "http",
  "http-body",
  "pin-project-lite",
 ]
@@ -1111,11 +1065,11 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "candid",
- "http 1.1.0",
+ "http",
  "ic-asset-certification",
  "ic-cdk",
  "ic-cdk-macros",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "ic-certification 3.0.2",
  "ic-http-certification",
  "include_dir",
  "lazy_static",
@@ -1127,7 +1081,7 @@ dependencies = [
 
 [[package]]
 name = "http_gateway_rust"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "http-body-util",
  "hyper",
@@ -1160,7 +1114,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "h2",
- "http 1.1.0",
+ "http",
  "http-body",
  "httparse",
  "httpdate",
@@ -1193,7 +1147,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08afdbb5c31130e3034af566421053ab03787c640246a446327f550d11bcb333"
 dependencies = [
  "futures-util",
- "http 1.1.0",
+ "http",
  "hyper",
  "hyper-util",
  "rustls",
@@ -1230,7 +1184,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.1.0",
+ "http",
  "http-body",
  "hyper",
  "pin-project-lite",
@@ -1295,9 +1249,9 @@ dependencies = [
  "elliptic-curve",
  "futures-util",
  "hex",
- "http 1.1.0",
+ "http",
  "http-body",
- "ic-certification 2.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.6.0",
  "ic-transport-types",
  "ic-verify-bls-signature",
  "k256",
@@ -1324,24 +1278,25 @@ dependencies = [
 
 [[package]]
 name = "ic-asset-certification"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f4a4b44d9d38b0302aa774a6cdc364348166a18d7efbb3ec422a16bda161573"
 dependencies = [
  "globset",
- "http 0.2.12",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "http",
+ "ic-certification 3.0.2",
  "ic-http-certification",
- "regex",
  "thiserror",
 ]
 
 [[package]]
 name = "ic-cbor"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5500d6e85bc2ca8ea8aaed16cb84811882589244831a2fd8eefe02e90b3006c6"
 dependencies = [
  "candid",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "ic-certification 3.0.2",
  "leb128",
  "nom",
  "thiserror",
@@ -1376,13 +1331,14 @@ dependencies = [
 
 [[package]]
 name = "ic-certificate-verification"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2daec653eb7895b5549cdf58d871985711c03cf5e389f7800a970f4f42dc0897"
 dependencies = [
- "cached 0.47.0",
+ "cached 0.54.0",
  "candid",
  "ic-cbor",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "ic-certification 3.0.2",
  "lazy_static",
  "leb128",
  "miracl_core_bls12381",
@@ -1406,8 +1362,9 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eae40f26fcac9c141cad54d9aa5f423efffde78ac371057c53d275ebbcad443"
 dependencies = [
  "hex",
  "serde",
@@ -1417,13 +1374,14 @@ dependencies = [
 
 [[package]]
 name = "ic-http-certification"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "479941fca8e68c2267cddf686d34ed6fb491168667ff259c08a3d65d28bd26d2"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "candid",
- "http 0.2.12",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "http",
+ "ic-certification 3.0.2",
  "ic-representation-independent-hash",
  "serde",
  "serde_cbor",
@@ -1433,13 +1391,13 @@ dependencies = [
 
 [[package]]
 name = "ic-http-gateway"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "assert_matches",
  "bytes",
  "candid",
  "futures",
- "http 1.1.0",
+ "http",
  "http-body",
  "http-body-util",
  "ic-agent",
@@ -1458,8 +1416,9 @@ dependencies = [
 
 [[package]]
 name = "ic-representation-independent-hash"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3643f12824280580d31e47d380f1be23abee29944a1430c3ed22b164ac8e68db"
 dependencies = [
  "leb128",
  "sha2 0.10.8",
@@ -1467,17 +1426,18 @@ dependencies = [
 
 [[package]]
 name = "ic-response-verification"
-version = "2.6.0"
-source = "git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f#dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b97514fada84797baf61a6a29f1c71695798c2628cb6013d97a5dd6ecc26df7"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "candid",
  "flate2",
  "hex",
- "http 0.2.12",
+ "http",
  "ic-cbor",
  "ic-certificate-verification",
- "ic-certification 2.6.0 (git+https://github.com/dfinity/response-verification?rev=dcbd7d471e1a5f95d8b1e8a66c4a35fd2a68268f)",
+ "ic-certification 3.0.2",
  "ic-http-certification",
  "ic-representation-independent-hash",
  "leb128",
@@ -1496,7 +1456,7 @@ checksum = "2d8789a5c176bb1b925fa58ca97c651a3995d504e76101e93d2a17f558bdcf66"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 2.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.6.0",
  "leb128",
  "serde",
  "serde_bytes",
@@ -2307,7 +2267,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http 1.1.0",
+ "http",
  "http-body",
  "http-body-util",
  "hyper",
@@ -2715,7 +2675,7 @@ version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d846214a9854ef724f3da161b426242d8de7c1fc7de2f89bb1efcb154dca79d"
 dependencies = [
- "darling 0.20.10",
+ "darling",
  "proc-macro2",
  "quote",
  "syn 2.0.85",
@@ -2844,12 +2804,6 @@ dependencies = [
  "psm",
  "windows-sys 0.59.0",
 ]
-
-[[package]]
-name = "strsim"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "strsim"
@@ -3461,6 +3415,16 @@ name = "web-sys"
 version = "0.3.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6488b90108c040df0fe62fa815cbdee25124641df01814dd7282749234c6112"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "web-time"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

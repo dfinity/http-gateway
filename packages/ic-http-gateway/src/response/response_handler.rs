@@ -6,7 +6,7 @@ use futures::{stream, Stream, StreamExt, TryStreamExt};
 use http_body::Frame;
 use http_body_util::{BodyExt, Full};
 use ic_agent::{Agent, AgentError};
-use ic_http_certification::{HttpRequest, HttpResponse};
+use ic_http_certification::{HttpRequest, HttpResponse, StatusCode};
 use ic_response_verification::MAX_VERIFICATION_VERSION;
 use ic_utils::interfaces::http_request::HeaderField;
 use ic_utils::{
@@ -360,8 +360,15 @@ fn create_206_stream(
                     "unexpected StreamingStrategy".to_string(),
                 ));
             }
+
+            let Ok(status_code) = StatusCode::from_u16(agent_response.status_code) else {
+                return Err(AgentError::InvalidHttpResponse(format!(
+                    "Invalid canister response status code: {}",
+                    agent_response.status_code
+                )));
+            };
             let response = HttpResponse::builder()
-                .with_status_code(agent_response.status_code)
+                .with_status_code(status_code)
                 .with_headers(
                     agent_response
                         .headers
