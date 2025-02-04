@@ -258,7 +258,7 @@ fn get_content_range_values(
 ) -> Result<ContentRangeValues, AgentError> {
     let str_value = get_content_range_header_str(response_headers)?;
     let range_values = parse_content_range_header_str(&str_value)?;
-    // ic_cdk::println!("--- range values: {:?}", range_values);
+
     if range_values.range_begin > fetched_length {
         return Err(AgentError::InvalidHttpResponse(format!(
             "chunk out-of-order: range_begin={} is larger than expected begin={} ",
@@ -323,8 +323,10 @@ fn create_206_stream(
             };
             let canister = HttpRequestCanister::create(&agent, stream_state.canister_id);
             let next_chunk_begin = stream_state.fetched_length;
+
+            let range_header = ("Range".to_string(), format!("bytes={}-", next_chunk_begin));
             let mut updated_headers = stream_state.http_request.headers().to_vec();
-            updated_headers.push(("Range".to_string(), format!("bytes={}-", next_chunk_begin)));
+            updated_headers.push(range_header.clone());
             let headers = updated_headers
                 .iter()
                 .map(|(name, value)| HeaderField(name.into(), value.into()))
@@ -378,10 +380,12 @@ fn create_206_stream(
                 )
                 .with_body(agent_response.body.clone())
                 .build();
+            let mut http_request = stream_state.http_request.clone();
+            http_request.headers_mut().push(range_header);
             let validation_result = validate(
                 &agent,
                 &stream_state.canister_id,
-                stream_state.http_request.clone(),
+                http_request,
                 response,
                 stream_state.skip_verification,
             );

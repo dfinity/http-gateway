@@ -22,9 +22,6 @@ jobs:
       - name: Download PocketIC
         run: ./scripts/download-pocket-ic.sh
 
-      - name: Build Cargo crates
-        run: cargo build --release
-
       - name: Build canisters
         run: dfx build --check
 
