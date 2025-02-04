@@ -63,7 +63,7 @@ fn test_long_asset_request_yields_entire_asset(#[case] asset_name: &str) {
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -178,7 +178,7 @@ fn test_corrupted_long_asset_request_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -251,7 +251,7 @@ fn test_long_asset_with_chunks_out_of_order_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -324,7 +324,7 @@ fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -392,7 +392,7 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
