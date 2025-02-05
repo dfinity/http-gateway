@@ -46,7 +46,7 @@ ic-cdk-macros = "0.13"
 ic-agent = "0.39"
 ic-utils = "0.39"
 candid = "0.10"
-pocket-ic = "=3.0.0"
+pocket-ic = "6.0"
 assert_matches = "1.5"
 rstest = "0.18"
 
