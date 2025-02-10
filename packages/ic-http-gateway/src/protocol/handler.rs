@@ -202,7 +202,7 @@ pub async fn process_request(
                             metadata: HttpGatewayResponseMetadata {
                                 upgraded_to_update_call: is_update_call,
                                 response_verification_version: None,
-                                internal_error: Some(e.into()),
+                                internal_error: Some(http::Error::from(e).into()),
                             },
                         };
                     }
@@ -263,7 +263,7 @@ pub async fn process_request(
                 metadata: HttpGatewayResponseMetadata {
                     upgraded_to_update_call: is_update_call,
                     response_verification_version,
-                    internal_error: Some(e.into()),
+                    internal_error: Some(http::Error::from(e).into()),
                 },
             }
         }
