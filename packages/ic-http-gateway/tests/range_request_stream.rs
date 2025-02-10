@@ -221,7 +221,7 @@ fn test_corrupted_long_asset_request_fails(
             // and the full body contains the error message.
             assert_matches!(body_result,
                 Ok(body) if format!("{:?}", body).contains(
-                "Response verification failed: Invalid response hashes")
+                "Response verification failed: The hash of the request and response was not found in the tree")
             );
         } else {
             // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
