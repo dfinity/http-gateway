@@ -1,3 +1,13 @@
+## 0.2.0 (2025-02-10)
+
+### Feat
+
+- **ic-http-gateway**: propagate http error (#33)
+
+### Fix
+
+- **ic-http-gateway**: include range header when running response verification for range requests (#40)
+
 ## 0.1.0 (2024-12-20)
 
 ### Feat
