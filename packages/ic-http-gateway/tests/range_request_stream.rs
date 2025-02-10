@@ -63,7 +63,7 @@ fn test_long_asset_request_yields_entire_asset(#[case] asset_name: &str) {
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -178,7 +178,7 @@ fn test_corrupted_long_asset_request_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -221,7 +221,7 @@ fn test_corrupted_long_asset_request_fails(
             // and the full body contains the error message.
             assert_matches!(body_result,
                 Ok(body) if format!("{:?}", body).contains(
-                "Response verification failed: Invalid response hashes")
+                "Response verification failed: The hash of the request and response was not found in the tree")
             );
         } else {
             // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
@@ -237,6 +237,8 @@ fn test_corrupted_long_asset_request_fails(
 
 #[rstest]
 #[case(TWO_CHUNKS_ASSET_NAME, 0)]
+#[case(SIX_CHUNKS_ASSET_NAME, 0)]
+#[case(SIX_CHUNKS_ASSET_NAME, 1)]
 #[case(SIX_CHUNKS_ASSET_NAME, 3)]
 fn test_long_asset_with_chunks_out_of_order_fails(
     #[case] asset_name: &str,
@@ -251,7 +253,7 @@ fn test_long_asset_with_chunks_out_of_order_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -287,15 +289,18 @@ fn test_long_asset_with_chunks_out_of_order_fails(
     rt.block_on(async {
         let body_result = response.canister_response.into_body().collect().await;
         if chunk_to_swap == 0 {
-            // If the first chunk is corrupted, the status indicates the failure
-            // and the full body contains the error message.
+            // If the first chunk is swapped (i.e. instead of getting an
+            // initial portion of the asset we got a different one,
+            // the status indicates the failure and the full body contains
+            // the error message.  In this case the verification fails,
+            // as we're getting a chunk for which the certification includes
+            // "Range"-header, while the original request did not include
+            // that header (because it requested the entire asset).
             assert_matches!(body_result,
-                Ok(body) if format!("{:?}", body).contains(&format!(
-                    "chunk out-of-order: range_begin={}",
-                    ASSET_CHUNK_SIZE*(chunk_to_swap+1)))
+                Ok(body) if format!("{:?}", body).contains("Response verification failed")
             );
         } else {
-            // If the first chunk is ok, but some other chunk is corrupted, the response has 200-status,
+            // If the first chunk is ok, but some other chunk is swapped, the response has 200-status,
             // but fetching the full body fails with an error for the corrupted chunk.
             assert_matches!(body_result,
                 Err(e) if e.to_string().contains(&format!(
@@ -324,7 +329,7 @@ fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();
@@ -392,7 +397,7 @@ fn test_range_request_yields_range_response(#[case] asset_name: &str) {
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();

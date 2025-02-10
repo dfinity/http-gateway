@@ -39,7 +39,7 @@ fn main() {
         .build();
 
     let canister_id = pic.create_canister();
-    pic.add_cycles(canister_id, 2_000_000_000_000);
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
     pic.install_canister(canister_id, wasm_bytes, vec![], None);
 
     let url = pic.auto_progress();

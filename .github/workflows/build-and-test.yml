@@ -19,17 +19,19 @@ jobs:
         with:
           dfx-version: 'auto'
 
-      - name: Download PocketIC
-        run: ./scripts/download-pocket-ic.sh
+      - name: Install PocketIC server
+        uses: dfinity/pocketic@main
+        with:
+          pocket-ic-server-version: '7.0.0'
 
-      - name: Build Cargo crates
-        run: cargo build --release
+      - name: Confirm successful installation
+        run: ${POCKET_IC_BIN} --version
 
       - name: Build canisters
         run: dfx build --check
 
       - name: Test Cargo crates
-        run: POCKET_IC_BIN=$(pwd)/pocket-ic cargo test --all-features
+        run: cargo test --all-features
 
       - name: Build Cargo docs
         run: cargo doc --no-deps
