@@ -1,6 +1,4 @@
-use crate::{
-    HttpGatewayClient, HttpGatewayClientArgs, HttpGatewayResult, DEFAULT_BOUNDARY_NODE_ENDPOINT,
-};
+use crate::{HttpGatewayClient, HttpGatewayClientArgs, HttpGatewayResult, DEFAULT_API_GATEWAY};
 use ic_agent::Agent;
 
 pub struct HttpGatewayClientBuilder {
@@ -21,9 +19,7 @@ impl HttpGatewayClientBuilder {
     pub fn build(self) -> HttpGatewayResult<HttpGatewayClient> {
         let agent = match self.agent {
             Some(agent) => agent,
-            None => Agent::builder()
-                .with_url(DEFAULT_BOUNDARY_NODE_ENDPOINT)
-                .build()?,
+            None => Agent::builder().with_url(DEFAULT_API_GATEWAY).build()?,
         };
 
         Ok(HttpGatewayClient::new(HttpGatewayClientArgs { agent }))
