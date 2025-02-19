@@ -20,10 +20,9 @@ You can read more about this protocol in [the spec](https://github.com/dfinity/i
 
 ## Related Projects
 
-- [Response Verification](https://github.com/dfinity/response-verification/)
-- [Service Worker](https://github.com/dfinity/ic/tree/master/typescript/service-worker)
-- [ICX Proxy](https://github.com/dfinity/ic/tree/master/rs/boundary_node/icx_proxy)
+- [ic-gateway](https://github.com/dfinity/ic-gateway)
 - [Desktop HTTP Proxy](https://github.com/dfinity/http-proxy)
+- [Response Verification](https://github.com/dfinity/response-verification)
 
 ## Contributing
 

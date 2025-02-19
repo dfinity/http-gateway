@@ -1,14 +1,14 @@
 {
-  "name": "@dfinity/http-canister-client",
+  "name": "@dfinity/http-gateway",
   "version": "0.0.0",
-  "description": "A JavaScript client for Internet Computer canisters that implement the HTTP interface",
+  "description": "A JavaScript implementation of the Internet Computer HTTP Gateway protocol",
   "author": "DFINITY Stiftung",
   "license": "Apache-2.0",
   "homepage": "https://github.com/dfinity/http-gateway#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/dfinity/http-gateway.git",
-    "directory": "packages/http-canister-client-js"
+    "directory": "packages/http-gateway-js"
   },
   "bugs": {
     "url": "https://github.com/dfinity/http-gateway/issues"
@@ -18,23 +18,21 @@
     "computer",
     "icp",
     "dfinity",
-    "canister",
     "http",
-    "interface",
-    "client"
+    "gateway"
   ],
-  "main": "./dist/http-canister-client.umd.js",
-  "module": "./dist/http-canister-client.mjs",
+  "main": "./dist/http-gateway.umd.js",
+  "module": "./dist/http-gateway.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/http-canister-client.mjs"
+        "default": "./dist/http-gateway.mjs"
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/http-canister-client.umd.js"
+        "default": "./dist/http-gateway.umd.js"
       }
     }
   },
@@ -44,9 +42,13 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage"
   },
+  "dependencies": {
+    "@dfinity/http-canister-client": "workspace:*"
+  },
   "peerDependencies": {
     "@dfinity/agent": "^2.2.0",
     "@dfinity/candid": "^2.2.0",
-    "@dfinity/principal": "^2.2.0"
+    "@dfinity/principal": "^2.2.0",
+    "@dfinity/response-verification": "^3.0.0"
   }
 }

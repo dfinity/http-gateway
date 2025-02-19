@@ -5,6 +5,7 @@ dist/
 pocket-ic
 .env
 Cargo.lock
+.wrangler
 
 .DS_Store
 .idea

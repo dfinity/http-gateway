@@ -1,5 +1,5 @@
 use crate::{
-    HttpGatewayClient, HttpGatewayClientArgs, HttpGatewayResult, DEFAULT_BOUNDARY_NODE_ENDPOINT,
+    HttpGatewayClient, HttpGatewayClientArgs, HttpGatewayResult, DEFAULT_API_GATEWAY,
 };
 use ic_agent::Agent;
 
@@ -22,7 +22,7 @@ impl HttpGatewayClientBuilder {
         let agent = match self.agent {
             Some(agent) => agent,
             None => Agent::builder()
-                .with_url(DEFAULT_BOUNDARY_NODE_ENDPOINT)
+                .with_url(DEFAULT_API_GATEWAY)
                 .build()?,
         };
 

@@ -1,0 +1,17 @@
+{
+  "name": "http-gateway-cloudflare-example",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@dfinity/http-gateway": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250121.0",
+    "wrangler": "^3.105.0"
+  }
+}

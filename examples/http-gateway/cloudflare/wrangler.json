@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "http-gateway-cloudflare-example",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-21",
+  "observability": {
+    "enabled": true
+  },
+  "define": {
+    "global": "globalThis"
+  },
+  "vars": {
+    "API_GATEWAY": "https://icp-api.io",
+    "CANISTER_ID": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+  }
+}
