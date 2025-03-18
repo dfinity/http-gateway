@@ -40,19 +40,21 @@ sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = "0.1"
+reqwest = "0.12"
 
-ic-cdk = "0.13"
-ic-cdk-macros = "0.13"
-ic-agent = "0.39"
-ic-utils = "0.39"
+ic-cdk = "0.17"
+ic-cdk-macros = "0.17"
+ic-agent = "0.40"
+ic-utils = "0.40"
 candid = "0.10"
 pocket-ic = "6.0"
-assert_matches = "1.5"
+assert_matches = "1"
 rstest = "0.18"
+testcontainers = "0.23"
 
-ic-response-verification = "3"
-ic-certification = "3"
-ic-http-certification = "3"
-ic-asset-certification = "3"
+ic-response-verification = ">=3.0.3, <4.0.0"
+ic-certification = ">=3.0.3, <4.0.0"
+ic-http-certification = ">=3.0.3, <4.0.0"
+ic-asset-certification = ">=3.0.3, <4.0.0"
 
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.2.0" }
