@@ -1159,7 +1159,7 @@ dependencies = [
 
 [[package]]
 name = "http_gateway_rust"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "http-body-util",
  "hyper",
@@ -1473,7 +1473,7 @@ dependencies = [
 
 [[package]]
 name = "ic-http-gateway"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "assert_matches",
  "bytes",
