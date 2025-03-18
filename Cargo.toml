@@ -12,7 +12,7 @@ members = [
 default-members = ["packages/ic-http-gateway"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 authors = ["DFINITY Stiftung"]
 edition = "2021"
 repository = "https://github.com/dfinity/http-gateway"
@@ -57,4 +57,4 @@ ic-certification = ">=3.0.3, <4.0.0"
 ic-http-certification = ">=3.0.3, <4.0.0"
 ic-asset-certification = ">=3.0.3, <4.0.0"
 
-ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.2.0" }
+ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.3.0" }
