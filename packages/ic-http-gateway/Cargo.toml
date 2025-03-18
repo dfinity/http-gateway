@@ -37,8 +37,8 @@ ic-response-verification.workspace = true
 [dev-dependencies]
 assert_matches.workspace = true
 pocket-ic.workspace = true
-reqwest = "0.12.8"
-testcontainers = "0.23.1"
+reqwest.workspace = true
+testcontainers.workspace = true
 tokio.workspace = true
 rand_chacha.workspace = true
 rstest.workspace = true

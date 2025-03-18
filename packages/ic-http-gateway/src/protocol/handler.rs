@@ -417,35 +417,43 @@ pub async fn process_request(
 fn handle_agent_error(error: &AgentError) -> CanisterResponse {
     match error {
         // Turn all `DestinationInvalid`s into 404
-        AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::DestinationInvalid,
-            reject_message,
+        AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::DestinationInvalid,
+                    reject_message,
+                    ..
+                },
             ..
-        }) => create_err_response(StatusCode::NOT_FOUND, reject_message),
+        } => create_err_response(StatusCode::NOT_FOUND, reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
-        AgentError::CertifiedReject(response) => create_err_response(
+        AgentError::CertifiedReject { reject, .. } => create_err_response(
             StatusCode::BAD_GATEWAY,
             &format!(
                 "Replica Error: reject code {:?}, message {}, error code {:?}",
-                response.reject_code, response.reject_message, response.error_code,
+                reject.reject_code, reject.reject_message, reject.error_code,
             ),
         ),
 
-        AgentError::UncertifiedReject(RejectResponse {
-            reject_code: RejectCode::DestinationInvalid,
-            reject_message,
+        AgentError::UncertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::DestinationInvalid,
+                    reject_message,
+                    ..
+                },
             ..
-        }) => create_err_response(StatusCode::NOT_FOUND, reject_message),
+        } => create_err_response(StatusCode::NOT_FOUND, reject_message),
 
         // If the result is a Replica error, returns the 500 code and message. There is no information
         // leak here because a user could use `dfx` to get the same reply.
-        AgentError::UncertifiedReject(response) => create_err_response(
+        AgentError::UncertifiedReject { reject, .. } => create_err_response(
             StatusCode::BAD_GATEWAY,
             &format!(
                 "Replica Error: reject code {:?}, message {}, error code {:?}",
-                response.reject_code, response.reject_message, response.error_code,
+                reject.reject_code, reject.reject_message, reject.error_code,
             ),
         ),
 
