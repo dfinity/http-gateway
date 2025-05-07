@@ -1,4 +1,4 @@
-import { Actor, ActorSubclass, HttpAgent } from '@dfinity/agent';
+import { Actor, ActorSubclass } from '@dfinity/agent';
 import { describe, it, expect, vi, beforeEach, Mock, Mocked } from 'vitest';
 
 import {
@@ -85,5 +85,43 @@ describe('httpCanisterClient', () => {
     });
   });
 
-  describe('httpRequestUpdate()', () => {});
+  describe('httpRequestUpdate()', () => {
+    it('should send an HTTP request update', async () => {
+      const canisterReq: CanisterHttpRequest = {
+        method: 'POST',
+        url: '/update',
+        body: new Uint8Array([1, 2, 3]),
+        headers: [],
+        certificate_version: [],
+      };
+      const canisterRes: CanisterHttpResponse = {
+        status_code: 200,
+        body: new Uint8Array([0, 1, 2, 3, 4, 5]),
+        headers: [],
+        streaming_strategy: [],
+        upgrade: [],
+      };
+
+      actorMock.http_request_update.mockResolvedValue(canisterRes);
+
+      const req: HttpRequest = {
+        method: 'POST',
+        url: '/update',
+        body: new Uint8Array([1, 2, 3]),
+        headers: [],
+        certificateVersion: null,
+      };
+      const expectedRes: HttpResponse = {
+        statusCode: 200,
+        body: new Uint8Array([0, 1, 2, 3, 4, 5]),
+        headers: [],
+        streamingStrategy: null,
+        upgrade: null,
+      };
+      const res = await client.httpRequestUpdate(req);
+
+      expect(actorMock.http_request_update).toHaveBeenCalledWith(canisterReq);
+      expect(res).toEqual(expectedRes);
+    });
+  });
 });
