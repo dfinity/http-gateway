@@ -13,11 +13,11 @@ export default {
     const client = new HttpGatewayClient({
       agent,
       responseVerificationWasm: RESPONSE_VERIFICATION_WASM,
+      canisterId: env['CANISTER_ID'],
     });
 
     const response = await client.request({
       request,
-      canisterId: env['CANISTER_ID'],
     });
 
     await caches.default.put(request, mapResponse(response.clone()));
