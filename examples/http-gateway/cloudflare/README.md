@@ -2,7 +2,7 @@
 
 ## Environment variables
 
-Set the `API_GATEWAY` and `CANISTER_ID` variables in the `wrangler.json` file. Run `pnpm run -F http-gateway-cloudflare-example` to regenerate the `worker-configuration.d.ts` file.
+Set the `API_GATEWAY` and `CANISTER_ID` variables in the `wrangler.json` file. Run `pnpm run -F http-gateway-cloudflare-example cf-typegen` to regenerate the `worker-configuration.d.ts` file.
 
 ## Notes
 

@@ -11,7 +11,6 @@
     "@dfinity/http-gateway": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250121.0",
-    "wrangler": "^3.105.0"
+    "wrangler": "^4.14.3"
   }
 }
