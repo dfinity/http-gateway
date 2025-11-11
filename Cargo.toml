@@ -44,8 +44,8 @@ reqwest = "0.12"
 
 ic-cdk = "0.17"
 ic-cdk-macros = "0.17"
-ic-agent = { git = "https://github.com/dfinity/agent-rs", rev = "f34acedb5539838ffdbd4cf49a0832303977293f" }
-ic-utils = { git = "https://github.com/dfinity/agent-rs", rev = "f34acedb5539838ffdbd4cf49a0832303977293f" }
+ic-agent = "0.44"
+ic-utils = "0.44"
 candid = "0.10"
 pocket-ic = "6.0"
 assert_matches = "1"
