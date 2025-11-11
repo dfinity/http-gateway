@@ -14,7 +14,7 @@ pub struct HttpGatewayClient {
     agent: Agent,
 }
 
-impl HttpGatewayClient {
+impl<'a> HttpGatewayClient {
     pub fn new(args: HttpGatewayClientArgs) -> Self {
         Self { agent: args.agent }
     }
@@ -23,7 +23,7 @@ impl HttpGatewayClient {
         Default::default()
     }
 
-    pub fn request(&self, args: HttpGatewayRequestArgs) -> HttpGatewayRequestBuilder {
+    pub fn request(&'a self, args: HttpGatewayRequestArgs) -> HttpGatewayRequestBuilder<'a> {
         HttpGatewayRequestBuilder::new(HttpGatewayRequestBuilderArgs {
             request_args: args,
             agent: &self.agent,

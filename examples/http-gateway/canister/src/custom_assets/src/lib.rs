@@ -111,44 +111,29 @@ fn current_chunk_index(resp: &HttpResponse) -> usize {
 }
 
 fn chunk_corruption_requested(req: &HttpRequest) -> Option<usize> {
-    if let Some(corrupted_chunk_index) = get_header_value(req.headers(), "Test-CorruptChunkAtIndex")
-    {
-        Some(
-            corrupted_chunk_index
-                .parse()
-                .expect("invalid index of chunk to corrupt"),
-        )
-    } else {
-        None
-    }
+    get_header_value(req.headers(), "Test-CorruptChunkAtIndex").map(|corrupted_chunk_index| {
+        corrupted_chunk_index
+            .parse()
+            .expect("invalid index of chunk to corrupt")
+    })
 }
 
 fn cert_corruption_requested(req: &HttpRequest) -> Option<usize> {
-    if let Some(corrupted_cert_chunk_index) =
-        get_header_value(req.headers(), "Test-CorruptCertificateAtIndex")
-    {
-        Some(
+    get_header_value(req.headers(), "Test-CorruptCertificateAtIndex").map(
+        |corrupted_cert_chunk_index| {
             corrupted_cert_chunk_index
                 .parse()
-                .expect("invalid index of chunk to corrupt the certificate"),
-        )
-    } else {
-        None
-    }
+                .expect("invalid index of chunk to corrupt the certificate")
+        },
+    )
 }
 
 fn chunk_swap_requested(req: &HttpRequest) -> Option<usize> {
-    if let Some(chunk_index_to_swap) =
-        get_header_value(req.headers(), "Test-SwapChunkAtIndexWithNext")
-    {
-        Some(
-            chunk_index_to_swap
-                .parse()
-                .expect("invalid index of chunk to swap"),
-        )
-    } else {
-        None
-    }
+    get_header_value(req.headers(), "Test-SwapChunkAtIndexWithNext").map(|chunk_index_to_swap| {
+        chunk_index_to_swap
+            .parse()
+            .expect("invalid index of chunk to swap")
+    })
 }
 
 fn get_header_value(headers: &[HeaderField], header_name: &str) -> Option<String> {
@@ -178,10 +163,10 @@ fn get_content_range_begin(content_range_header_value: &str) -> usize {
             content_range_header_value
         );
     }
-    let range_begin = str_value_parts[0].parse::<usize>().expect(&format!(
-        "Invalid range_begin in: {}",
-        content_range_header_value
-    ));
+    let range_begin = str_value_parts[0]
+        .parse::<usize>()
+        .unwrap_or_else(|_| panic!("Invalid range_begin in: {content_range_header_value}"));
+
     // Note: skipping the check whether range_end and total_length are sane.
     range_begin
 }
