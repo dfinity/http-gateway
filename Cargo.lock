@@ -372,9 +372,9 @@ checksum = "ade8366b8bd5ba243f0a58f036cc0ca8a2f069cff1a2351ef1cac6b083e16fc0"
 
 [[package]]
 name = "candid"
-version = "0.10.13"
+version = "0.10.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a253bab4a9be502c82332b60cbeee6202ad0692834efeec95fae9f29db33d692"
+checksum = "8037a01ec09d6c06883a38bad4f47b8d06158ad360b841e0ae5707c9884dfaf6"
 dependencies = [
  "anyhow",
  "binread",
@@ -395,9 +395,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.6.6"
+version = "0.10.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3de398570c386726e7a59d9887b68763c481477f9a043fb998a2e09d428df1a9"
+checksum = "fb45f4d5eff3805598ee633dd80f8afb306c023249d34b5b7dfdc2080ea1df2e"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1383,8 +1383,9 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.42.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=f34acedb5539838ffdbd4cf49a0832303977293f#f34acedb5539838ffdbd4cf49a0832303977293f"
+version = "0.44.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5337598ec943bab711e0288319761abb5a7a7087ac226b03472441a90f88e0c"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -1406,7 +1407,7 @@ dependencies = [
  "http-body-util",
  "ic-certification 3.0.3",
  "ic-ed25519",
- "ic-transport-types 0.42.0",
+ "ic-transport-types 0.44.3",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1585,9 +1586,9 @@ dependencies = [
 
 [[package]]
 name = "ic-management-canister-types"
-version = "0.3.2"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95f3af3543f6d0cbdecd2dcdfd4737ada2bd42d935cc787eec22090c96492c76"
+checksum = "8b5a939a84adbc30769d47e5de72c7b9f3713284e3ac87df4eb24795677a8df8"
 dependencies = [
  "candid",
  "serde",
@@ -1647,8 +1648,9 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.42.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=f34acedb5539838ffdbd4cf49a0832303977293f#f34acedb5539838ffdbd4cf49a0832303977293f"
+version = "0.44.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5fec6355d0a542bfe484eb36343b6570047394124918cb8b435e22241c65427"
 dependencies = [
  "candid",
  "hex",
@@ -1664,8 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.42.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=f34acedb5539838ffdbd4cf49a0832303977293f#f34acedb5539838ffdbd4cf49a0832303977293f"
+version = "0.44.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc35f1cf9c5053b108b24fbf24eed544dc37647a95b183e2e1c7dfb93da23d32"
 dependencies = [
  "async-trait",
  "candid",
@@ -1681,7 +1684,6 @@ dependencies = [
  "strum_macros",
  "thiserror 2.0.12",
  "time",
- "tokio",
 ]
 
 [[package]]
