@@ -10,13 +10,13 @@ categories = [
     "wasm",
 ]
 keywords = ["internet-computer", "http", "gateway", "icp", "dfinity"]
-include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+include = ["src", "Cargo.toml", "README.md"]
 
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
-license-file.workspace = true
+license.workspace = true
 homepage.workspace = true
 
 [dependencies]
