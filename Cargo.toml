@@ -17,7 +17,7 @@ authors = ["DFINITY Stiftung"]
 edition = "2021"
 repository = "https://github.com/dfinity/http-gateway"
 homepage = "https://github.com/dfinity/http-gateway#readme"
-license-file = "LICENSE"
+license = "Apache-2.0"
 
 [profile.release]
 lto = true
