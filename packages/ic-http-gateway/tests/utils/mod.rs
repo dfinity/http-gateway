@@ -6,22 +6,12 @@ pub async fn load_custom_assets_wasm() -> Vec<u8> {
 }
 
 async fn load_wasm(canister: &str) -> Vec<u8> {
-    // First try to load from .dfx (if built locally with dfx)
-    let dfx_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../.dfx/local/canisters")
         .join(canister)
         .join(format!("{}.wasm.gz", canister));
 
-    if dfx_path.exists() {
-        return load_file(dfx_path).await;
-    }
-
-    // Fall back to pre-built WASM in examples directory
-    let examples_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/http-gateway/canister")
-        .join(format!("{}.wasm.gz", canister));
-
-    load_file(examples_path).await
+    load_file(file_path).await
 }
 
 async fn load_file(file_path: PathBuf) -> Vec<u8> {
