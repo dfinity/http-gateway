@@ -1268,7 +1268,7 @@ dependencies = [
  "ic-asset-certification",
  "ic-cdk",
  "ic-cdk-macros",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-http-certification",
  "include_dir",
  "lazy_static",
@@ -1464,7 +1464,7 @@ dependencies = [
  "http",
  "http-body",
  "http-body-util",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-ed25519",
  "ic-transport-types 0.45.0",
  "ic-verify-bls-signature",
@@ -1498,7 +1498,7 @@ checksum = "c43805022a5e4f408de44ca26396128697a2c39f83f4fdaf33f8aa3ac653d78e"
 dependencies = [
  "globset",
  "http",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-http-certification",
  "thiserror 1.0.69",
 ]
@@ -1510,7 +1510,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0efada960a6c9fb023f45ed95801b757a033dafba071e4f386c6c112ca186d9"
 dependencies = [
  "candid",
- "ic-certification 3.0.3",
+ "ic-certification",
  "leb128",
  "nom",
  "thiserror 1.0.69",
@@ -1559,7 +1559,7 @@ dependencies = [
  "cached 0.54.0",
  "candid",
  "ic-cbor",
- "ic-certification 3.0.3",
+ "ic-certification",
  "lazy_static",
  "leb128",
  "miracl_core_bls12381",
@@ -1567,18 +1567,6 @@ dependencies = [
  "parking_lot",
  "sha2 0.10.9",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "ic-certification"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e64ee3d8b6e81b51f245716d3e0badb63c283c00f3c9fb5d5219afc30b5bf821"
-dependencies = [
- "hex",
- "serde",
- "serde_bytes",
- "sha2 0.10.9",
 ]
 
 [[package]]
@@ -1619,7 +1607,7 @@ dependencies = [
  "base64 0.22.1",
  "candid",
  "http",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-representation-independent-hash",
  "serde",
  "serde_cbor",
@@ -1686,7 +1674,7 @@ dependencies = [
  "http",
  "ic-cbor",
  "ic-certificate-verification",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-http-certification",
  "ic-representation-independent-hash",
  "leb128",
@@ -1699,19 +1687,20 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.37.1"
+version = "0.40.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "875dc4704780383112e8e8b5063a1b98de114321d0c7d3e7f635dcf360a57fba"
+checksum = "a2e7706e55836e8104c98149ec0796d20d5213fef972ac01b544657d410f1883"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 2.6.0",
+ "ic-certification",
  "leb128",
  "serde",
  "serde_bytes",
+ "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1722,7 +1711,7 @@ checksum = "4a775244756a5d97ff19b08071a946a4b4896904e35deb036bf215e80f2e703d"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 3.0.3",
+ "ic-certification",
  "leb128",
  "serde",
  "serde_bytes",
@@ -2432,17 +2421,21 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "pocket-ic"
-version = "6.0.0"
+version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "124a2380ca6f557adf8b02517cbfd2f564113230e14cda6f6aadd3dfe156293c"
+checksum = "03c0fe19b920be1485cdd3d58a70abfa768c2608f8349864d950791fe1a5c193"
 dependencies = [
+ "backoff",
  "base64 0.13.1",
  "candid",
+ "flate2",
  "hex",
- "ic-certification 2.6.0",
- "ic-transport-types 0.37.1",
+ "ic-certification",
+ "ic-management-canister-types",
+ "ic-transport-types 0.40.1",
  "reqwest",
  "schemars 0.8.22",
+ "semver",
  "serde",
  "serde_bytes",
  "serde_cbor",
@@ -2451,7 +2444,8 @@ dependencies = [
  "slog",
  "strum 0.26.3",
  "strum_macros 0.26.4",
- "thiserror 1.0.69",
+ "tempfile",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -3056,6 +3050,10 @@ name = "semver"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d767eb0aabc880b29956c35734170f26ed551a859dbd361d140cdbeca61ab1e2"
+dependencies = [
+ "serde",
+ "serde_core",
+]
 
 [[package]]
 name = "serde"
@@ -3840,6 +3838,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
+ "time",
  "tracing",
  "tracing-core",
  "tracing-log",
