@@ -160,6 +160,105 @@ fn test_long_asset_request_yields_entire_asset(#[case] asset_name: &str) {
     );
 }
 
+/// Regression test: when skip_verification is true (raw domains), the gateway must not
+/// forward the canister's chunk-level Content-Length alongside its own total Content-Length.
+/// Previously, the raw/skip-verification path copied all canister headers unfiltered,
+/// producing duplicate Content-Length values that violate HTTP/2.
+#[rstest]
+#[case(TWO_CHUNKS_ASSET_NAME)]
+#[case(SIX_CHUNKS_ASSET_NAME)]
+#[case(TEN_CHUNKS_ASSET_NAME)]
+fn test_long_asset_skip_verification_has_single_content_length(#[case] asset_name: &str) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
+
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
+    pic.install_canister(canister_id, wasm_bytes, vec![], None);
+
+    let url = pic.auto_progress();
+
+    let agent = Agent::builder().with_url(url).build().unwrap();
+    rt.block_on(async {
+        agent.fetch_root_key().await.unwrap();
+    });
+
+    let http_gateway = HttpGatewayClient::builder()
+        .with_agent(agent)
+        .build()
+        .unwrap();
+
+    let response = rt.block_on(async {
+        let mut req = http_gateway.request(HttpGatewayRequestArgs {
+            canister_id,
+            canister_request: Request::builder()
+                .uri(format!("/{asset_name}"))
+                .body(Bytes::new())
+                .unwrap(),
+        });
+        req.unsafe_set_skip_verification(true);
+        req.send().await
+    });
+
+    let expected_body = long_asset_body(asset_name);
+
+    assert_eq!(response.canister_response.status(), 200);
+
+    // There must be exactly one Content-Length header with the total asset size.
+    let content_length_values: Vec<&str> = response
+        .canister_response
+        .headers()
+        .get_all("content-length")
+        .iter()
+        .map(|v| v.to_str().unwrap())
+        .collect();
+    assert_eq!(
+        content_length_values,
+        vec![expected_body.len().to_string().as_str()],
+        "expected exactly one content-length header with total size {}, got {:?}",
+        expected_body.len(),
+        content_length_values
+    );
+
+    // Content-Range must not be present (it's a streaming reassembly, not a range response).
+    assert!(
+        !contains_header("content-range", response
+            .canister_response
+            .headers()
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.to_str().unwrap()))
+            .collect()),
+        "content-range header should not be present in reassembled response"
+    );
+
+    rt.block_on(async {
+        let body = response
+            .canister_response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .to_vec();
+
+        assert_eq!(body, expected_body);
+    });
+
+    assert_response_metadata(
+        response.metadata,
+        HttpGatewayResponseMetadata {
+            upgraded_to_update_call: false,
+            response_verification_version: None,
+            internal_error: None,
+        },
+    );
+}
+
 #[rstest]
 #[case(TWO_CHUNKS_ASSET_NAME, 0)]
 #[case(TWO_CHUNKS_ASSET_NAME, 1)]

@@ -19,6 +19,17 @@ use ic_utils::{
     interfaces::{http_request::HeaderField, HttpRequestCanister},
 };
 
+/// Returns true if the header should be stripped from the response.
+/// When the gateway receives a 206 response to a non-range request, it reassembles the full
+/// body via streaming and sets the correct Content-Length itself. The canister's original
+/// Content-Length (chunk size) and Content-Range must not be forwarded to the client.
+fn is_streaming_206_header(name: &str, status_code: StatusCode, is_range_request: bool) -> bool {
+    !is_range_request
+        && status_code == 206
+        && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
+            || name.eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
+}
+
 fn create_err_response(status_code: StatusCode, msg: &str) -> CanisterResponse {
     let mut response = Response::new(HttpGatewayResponseBody::Right(Full::from(
         msg.as_bytes().to_vec(),
@@ -275,7 +286,9 @@ pub async fn process_request(
         // this should only happen for raw domains.
         None => {
             for HeaderField(name, value) in &agent_response.headers {
-                response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                if !is_streaming_206_header(name, status_code, is_range_request) {
+                    response_builder = response_builder.header(name.as_ref(), value.as_ref());
+                }
             }
         }
 
@@ -298,7 +311,9 @@ pub async fn process_request(
 
                 // headers are also not certified in v1, filter known dangerous headers
                 for HeaderField(name, value) in &agent_response.headers {
-                    if !name.eq_ignore_ascii_case(CACHE_HEADER_NAME) {
+                    if !is_streaming_206_header(name, status_code, is_range_request)
+                        && !name.eq_ignore_ascii_case(CACHE_HEADER_NAME)
+                    {
                         response_builder = response_builder.header(name.as_ref(), value.as_ref());
                     }
                 }
@@ -308,17 +323,7 @@ pub async fn process_request(
                     // assume the developer knows what they're doing and return the response as-is
                     None => {
                         for HeaderField(name, value) in &agent_response.headers {
-                            // If the request is not a range-request, but got range-response,
-                            // do not copy "Content-Range" and "Content-Length" headers,
-                            // as clients obtain the full asset via a streaming response.
-                            if !is_range_request
-                                && status_code == 206
-                                && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
-                                    || name
-                                        .eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
-                            {
-                                // skip copying
-                            } else {
+                            if !is_streaming_206_header(name, status_code, is_range_request) {
                                 response_builder =
                                     response_builder.header(name.as_ref(), value.as_ref());
                             }
@@ -328,17 +333,7 @@ pub async fn process_request(
                     // return only the certified headers
                     Some(certified_http_response) => {
                         for (name, value) in &certified_http_response.headers {
-                            // If the request is not a range-request, but got range-response,
-                            // do not copy "Content-Range" and "Content-Length" headers,
-                            // as clients obtain the full asset via a streaming response.
-                            if !is_range_request
-                                && status_code == 206
-                                && (name.eq_ignore_ascii_case(http_header::CONTENT_RANGE.as_ref())
-                                    || name
-                                        .eq_ignore_ascii_case(http_header::CONTENT_LENGTH.as_ref()))
-                            {
-                                // skip copying
-                            } else {
+                            if !is_streaming_206_header(name, status_code, is_range_request) {
                                 response_builder = response_builder.header(name, value);
                             }
                         }
