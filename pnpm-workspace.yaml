@@ -1,3 +1,5 @@
 packages:
   - 'examples/http-canister-client/nodejs'
+  - 'examples/http-gateway/cloudflare'
   - 'packages/http-canister-client-js'
+  - 'packages/http-gateway-js'

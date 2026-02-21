@@ -13,15 +13,16 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@dfinity/agent": "^0.15.6",
-    "@dfinity/candid": "^0.15.6",
-    "@dfinity/principal": "^0.15.6",
-    "@types/node": "^20.1.0",
+    "@dfinity/agent": "^2.2.0",
+    "@dfinity/candid": "^2.2.0",
+    "@dfinity/principal": "^2.2.0",
+    "@dfinity/response-verification": "^3.0.0",
+    "@types/node": "^22.10.7",
     "isomorphic-fetch": "^3.0.0",
-    "prettier": "^2.8.8",
-    "typescript": "^5.0.4",
-    "vite": "^4.5.5",
-    "vite-plugin-checker": "^0.6.2",
-    "vitest": "^0.34.4"
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11",
+    "vite-plugin-checker": "^0.8.0",
+    "vitest": "^3.0.4"
   }
 }
