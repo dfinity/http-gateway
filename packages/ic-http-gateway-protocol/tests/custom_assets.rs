@@ -2,7 +2,9 @@ use bytes::Bytes;
 use http::Request;
 use http_body_util::BodyExt;
 use ic_agent::Agent;
-use ic_http_gateway_protocol::{HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata};
+use ic_http_gateway_protocol::{
+    HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata,
+};
 use pocket_ic::PocketIcBuilder;
 
 mod utils;
