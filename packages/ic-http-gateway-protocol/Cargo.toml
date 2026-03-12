@@ -1,8 +1,8 @@
 [package]
-name = "ic-http-gateway"
-description = "Compatibility crate for ic-http-gateway-protocol"
+name = "ic-http-gateway-protocol"
+description = "An HTTP Gateway implementation for interfacing with the Internet Computer over HTTP"
 readme = "README.md"
-documentation = "https://docs.rs/ic-http-gateway"
+documentation = "https://docs.rs/ic-http-gateway-protocol"
 categories = [
     "api-bindings",
     "cryptography::cryptocurrencies",
@@ -20,7 +20,19 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-ic-http-gateway-protocol.workspace = true
+thiserror.workspace = true
+futures.workspace = true
+http.workspace = true
+http-body.workspace = true
+http-body-util.workspace = true
+bytes.workspace = true
+
+ic-agent.workspace = true
+ic-utils.workspace = true
+candid.workspace = true
+
+ic-http-certification.workspace = true
+ic-response-verification.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true

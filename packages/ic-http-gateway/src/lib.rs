@@ -1,20 +1,5 @@
 /*!
-# HTTP Gateway
+# HTTP Gateway (Compatibility Crate)
 */
 
-mod client;
-pub use client::*;
-
-mod protocol;
-
-mod request;
-pub use request::*;
-
-mod response;
-pub use response::*;
-
-mod consts;
-pub(crate) use consts::*;
-
-mod error;
-pub use error::*;
+pub use ic_http_gateway_protocol::*;

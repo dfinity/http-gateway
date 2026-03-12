@@ -4,19 +4,21 @@ resolver = "2"
 members = [
     "examples/http-gateway/canister/src/custom_assets",
     "examples/http-gateway/rust",
+    "packages/ic-http-gateway-protocol",
+    # TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
     "packages/ic-http-gateway",
 ]
 
 # https://github.com/rust-lang/cargo/issues/9406
 # includes all members except those that must be compiled to WASM
-default-members = ["packages/ic-http-gateway"]
+default-members = ["packages/ic-http-gateway-protocol"]
 
 [workspace.package]
 version = "0.0.0-git"
 authors = ["DFINITY Stiftung"]
 edition = "2021"
-repository = "https://github.com/dfinity/http-gateway"
-homepage = "https://github.com/dfinity/http-gateway#readme"
+repository = "https://github.com/dfinity/ic-http-gateway-protocol"
+homepage = "https://github.com/dfinity/ic-http-gateway-protocol#readme"
 license = "Apache-2.0"
 
 [profile.release]
@@ -57,4 +59,6 @@ ic-certification = ">=3.0.3, <4.0.0"
 ic-http-certification = ">=3.0.3, <4.0.0"
 ic-asset-certification = ">=3.0.3, <4.0.0"
 
+ic-http-gateway-protocol = { path = "./packages/ic-http-gateway-protocol", version = "0.0.0-git" }
+# TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
 ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0-git" }

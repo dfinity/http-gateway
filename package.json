@@ -1,5 +1,5 @@
 {
-  "name": "http-gateway",
+  "name": "ic-http-gateway-protocol",
   "private": true,
   "engines": {
     "node": "^20",
