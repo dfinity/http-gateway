@@ -1,6 +1,6 @@
 [package]
 name = "ic-http-gateway"
-description = "An HTTP Gateway implementation for interfacing with the Internet Computer over HTTP"
+description = "Compatibility crate for ic-http-gateway-protocol"
 readme = "README.md"
 documentation = "https://docs.rs/ic-http-gateway"
 categories = [
@@ -20,26 +20,4 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-thiserror.workspace = true
-futures.workspace = true
-http.workspace = true
-http-body.workspace = true
-http-body-util.workspace = true
-bytes.workspace = true
-
-ic-agent.workspace = true
-ic-utils.workspace = true
-candid.workspace = true
-
-ic-http-certification.workspace = true
-ic-response-verification.workspace = true
-
-[dev-dependencies]
-assert_matches.workspace = true
-pocket-ic.workspace = true
-reqwest.workspace = true
-testcontainers.workspace = true
-tokio.workspace = true
-rand_chacha.workspace = true
-rstest.workspace = true
-sha2.workspace = true
+ic-http-gateway-protocol.workspace = true

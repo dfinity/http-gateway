@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use http::{status::StatusCode, Request};
 use ic_agent::{export::Principal, Agent};
-use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs};
+use ic_http_gateway_protocol::{HttpGatewayClient, HttpGatewayRequestArgs};
 use reqwest::Client;
 use std::{env, error::Error, process::Command, str::FromStr};
 use testcontainers::{
