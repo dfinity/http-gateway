@@ -1630,15 +1630,7 @@ dependencies = [
 name = "ic-http-gateway"
 version = "0.0.0-git"
 dependencies = [
- "assert_matches",
  "ic-http-gateway-protocol",
- "pocket-ic",
- "rand_chacha 0.3.1",
- "reqwest",
- "rstest",
- "sha2 0.10.9",
- "testcontainers",
- "tokio",
 ]
 
 [[package]]

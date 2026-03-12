@@ -33,6 +33,10 @@ jobs:
       - name: Test Cargo crates
         run: cargo test --all-features
 
+      # TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
+        - name: Check compatibility shim crate
+        run: cargo check -p ic-http-gateway --all-features
+
       - name: Build Cargo docs
         run: cargo doc --no-deps
 
