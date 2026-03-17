@@ -13,7 +13,7 @@ hyper.workspace = true
 hyper-util.workspace = true
 http-body-util.workspace = true
 
-ic-http-gateway.workspace = true
+ic-http-gateway-protocol.workspace = true
 ic-agent.workspace = true
 
 pocket-ic.workspace = true

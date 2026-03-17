@@ -27,6 +27,11 @@ jobs:
           sed "s/0\\.0\\.0-git/${RELEASE_TAG##*\/v}/" Cargo.toml.orig > Cargo.toml
           rm -f Cargo.toml.orig
 
+      - run: cargo publish --package ic-http-gateway-protocol --allow-dirty
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      # TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
       - run: cargo publish --package ic-http-gateway --allow-dirty
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

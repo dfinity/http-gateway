@@ -1393,7 +1393,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "ic-agent",
- "ic-http-gateway",
+ "ic-http-gateway-protocol",
  "pocket-ic",
  "tokio",
 ]
@@ -1723,6 +1723,13 @@ dependencies = [
 
 [[package]]
 name = "ic-http-gateway"
+version = "0.0.0-git"
+dependencies = [
+ "ic-http-gateway-protocol",
+]
+
+[[package]]
+name = "ic-http-gateway-protocol"
 version = "0.0.0-git"
 dependencies = [
  "assert_matches",

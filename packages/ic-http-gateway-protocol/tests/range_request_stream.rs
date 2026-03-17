@@ -4,7 +4,9 @@ use http::Request;
 use http_body_util::BodyExt;
 use ic_agent::hash_tree::Hash;
 use ic_agent::Agent;
-use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata};
+use ic_http_gateway_protocol::{
+    HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseMetadata,
+};
 use pocket_ic::PocketIcBuilder;
 use rand_chacha::rand_core::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;

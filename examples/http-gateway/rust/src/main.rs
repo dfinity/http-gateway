@@ -2,7 +2,9 @@ use http_body_util::BodyExt;
 use hyper::{body::Incoming, server::conn::http2, service::service_fn, Request, Response};
 use hyper_util::rt::TokioIo;
 use ic_agent::Agent;
-use ic_http_gateway::{HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseBody};
+use ic_http_gateway_protocol::{
+    HttpGatewayClient, HttpGatewayRequestArgs, HttpGatewayResponseBody,
+};
 use pocket_ic::PocketIcBuilder;
 use std::{convert::Infallible, net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt, net::TcpListener, task};
