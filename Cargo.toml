@@ -5,8 +5,6 @@ members = [
     "examples/http-gateway/canister/src/custom_assets",
     "examples/http-gateway/rust",
     "packages/ic-http-gateway-protocol",
-    # TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
-    "packages/ic-http-gateway",
 ]
 
 # https://github.com/rust-lang/cargo/issues/9406
@@ -60,5 +58,3 @@ ic-http-certification = ">=3.0.3, <4.0.0"
 ic-asset-certification = ">=3.0.3, <4.0.0"
 
 ic-http-gateway-protocol = { path = "./packages/ic-http-gateway-protocol", version = "0.0.0-git" }
-# TODO(NODE-1907): Remove once ic-http-gateway is fully deprecated.
-ic-http-gateway = { path = "./packages/ic-http-gateway", version = "0.0.0-git" }
