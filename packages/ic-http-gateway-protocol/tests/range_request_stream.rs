@@ -386,6 +386,68 @@ fn test_corrupted_chunk_certificate_for_long_asset_request_fails(
     });
 }
 
+// The canister claims via Content-Range that a chunk starts at the beginning of the asset,
+// while the body contains only the chunk. Verification is skipped (as for raw domains),
+// so the Content-Range header is the only information about the chunk's position.
+#[rstest]
+#[case(SIX_CHUNKS_ASSET_NAME, 1)]
+#[case(SIX_CHUNKS_ASSET_NAME, 2)]
+#[case(SIX_CHUNKS_ASSET_NAME, 5)]
+fn test_long_asset_with_content_range_not_matching_body_fails(
+    #[case] asset_name: &str,
+    #[case] chunk_to_rewind: usize,
+) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let wasm_bytes = rt.block_on(async { utils::load_custom_assets_wasm().await });
+
+    let pic = PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_application_subnet()
+        .build();
+
+    let canister_id = pic.create_canister();
+    pic.add_cycles(canister_id, 2_000_000_000_000_000);
+    pic.install_canister(canister_id, wasm_bytes, vec![], None);
+
+    let url = pic.auto_progress();
+
+    let agent = Agent::builder().with_url(url).build().unwrap();
+    rt.block_on(async {
+        agent.fetch_root_key().await.unwrap();
+    });
+
+    let http_gateway = HttpGatewayClient::builder()
+        .with_agent(agent)
+        .build()
+        .unwrap();
+
+    let response = rt.block_on(async {
+        let mut request = http_gateway.request(HttpGatewayRequestArgs {
+            canister_id,
+            canister_request: Request::builder()
+                .header(
+                    "Test-RewindContentRangeAtIndex",
+                    chunk_to_rewind.to_string(),
+                )
+                .uri(format!("/{asset_name}"))
+                .body(Bytes::new())
+                .unwrap(),
+        });
+        request.unsafe_set_skip_verification(true);
+        request.send().await
+    });
+    assert_eq!(response.canister_response.status(), 200);
+    rt.block_on(async {
+        let body_result = response.canister_response.into_body().collect().await;
+        assert_matches!(body_result,
+            Err(e) if e.to_string().contains(&format!(
+                "Content-Range header bytes 0-{}/{} does not match body length",
+                min(ASSET_CHUNK_SIZE * (chunk_to_rewind + 1), SIX_CHUNKS_ASSET_LEN) - 1,
+                SIX_CHUNKS_ASSET_LEN))
+        );
+    });
+}
+
 #[rstest]
 #[case(TWO_CHUNKS_ASSET_NAME)]
 #[case(SIX_CHUNKS_ASSET_NAME)]
