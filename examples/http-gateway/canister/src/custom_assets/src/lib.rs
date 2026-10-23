@@ -27,6 +27,7 @@ fn post_upgrade() {
 // - "Test-CorruptChunkAtIndex"
 // - "Test-CorruptCertificateAtIndex"
 // - "Test-SwapChunkAtIndexWithNext"
+// - "Test-RewindContentRangeAtIndex"
 #[query]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let mut response = serve_asset(&req);
@@ -98,6 +99,29 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             response = serve_asset(&next_chunk_req);
         }
     }
+    if let Some(index) = content_range_rewind_requested(&req) {
+        let current_chunk = current_chunk_index(&response);
+        if current_chunk == index {
+            // Create a response whose Content-Range claims that the chunk starts
+            // at the beginning of the asset, while the body still contains only the chunk.
+            response = HttpResponseBuilder::new()
+                .with_status_code(response.status_code())
+                .with_upgrade(response.upgrade().unwrap_or(false))
+                .with_body(response.body().to_owned())
+                .with_headers({
+                    let mut headers = response.headers().to_owned();
+                    for (key, value) in headers.iter_mut() {
+                        if key.eq_ignore_ascii_case("Content-Range") {
+                            let (_, range_end_and_total) =
+                                value.split_once('-').expect("invalid Content-Range header");
+                            *value = format!("bytes 0-{range_end_and_total}");
+                        }
+                    }
+                    headers
+                })
+                .build();
+        }
+    }
     response
 }
 
@@ -133,6 +157,14 @@ fn chunk_swap_requested(req: &HttpRequest) -> Option<usize> {
         chunk_index_to_swap
             .parse()
             .expect("invalid index of chunk to swap")
+    })
+}
+
+fn content_range_rewind_requested(req: &HttpRequest) -> Option<usize> {
+    get_header_value(req.headers(), "Test-RewindContentRangeAtIndex").map(|chunk_index| {
+        chunk_index
+            .parse()
+            .expect("invalid index of chunk to rewind the Content-Range")
     })
 }
 

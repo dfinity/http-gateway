@@ -175,6 +175,7 @@ pub async fn get_206_stream_response_body_and_total_length(
         http_request,
         canister_id,
         response_headers,
+        streamed_body.len(),
         skip_verification,
     )?;
     let content_length = stream_state.total_length;
@@ -271,6 +272,7 @@ fn get_content_range_header_str(
 fn get_content_range_values(
     response_headers: &Vec<HeaderField<'static>>,
     fetched_length: usize,
+    body_length: usize,
 ) -> Result<ContentRangeValues, AgentError> {
     let str_value = get_content_range_header_str(response_headers)?;
     let range_values = parse_content_range_header_str(&str_value)?;
@@ -284,7 +286,17 @@ fn get_content_range_values(
     if range_values.range_end < fetched_length {
         return Err(AgentError::InvalidHttpResponse(format!(
             "chunk out-of-order: range_end={} is smaller than length fetched so far={} ",
-            range_values.range_begin, fetched_length
+            range_values.range_end, fetched_length
+        )));
+    }
+    // The Content-Range header is controlled by the canister, so it must match the body,
+    // otherwise the offsets computed from it cannot be used to slice the body.
+    // `parse_content_range_header_str` guarantees that `range_begin <= range_end`.
+    let range_length = range_values.range_end - range_values.range_begin + 1;
+    if body_length != range_length {
+        return Err(AgentError::InvalidHttpResponse(format!(
+            "Content-Range header {} does not match body length={}",
+            str_value, body_length
         )));
     }
     Ok(range_values)
@@ -294,9 +306,10 @@ fn get_initial_stream_state<'a>(
     http_request: HttpRequest<'a>,
     canister_id: Principal,
     response_headers: &Vec<HeaderField<'static>>,
+    initial_body_length: usize,
     skip_verification: bool,
 ) -> Result<StreamState<'a>, AgentError> {
-    let range_values = get_content_range_values(response_headers, 0)?;
+    let range_values = get_content_range_values(response_headers, 0, initial_body_length)?;
 
     Ok(StreamState {
         http_request,
@@ -361,8 +374,17 @@ fn create_206_stream(
                 Ok((response,)) => response,
                 Err(e) => return Err(e),
             };
-            let range_values =
-                get_content_range_values(&agent_response.headers, stream_state.fetched_length)?;
+            let range_values = get_content_range_values(
+                &agent_response.headers,
+                stream_state.fetched_length,
+                agent_response.body.len(),
+            )?;
+            if range_values.total_length != stream_state.total_length {
+                return Err(AgentError::InvalidHttpResponse(format!(
+                    "chunk total_length={} differs from the initial total_length={}",
+                    range_values.total_length, stream_state.total_length
+                )));
+            }
             let new_bytes_begin = stream_state
                 .fetched_length
                 .saturating_sub(range_values.range_begin);
@@ -411,6 +433,12 @@ fn create_206_stream(
                     stream_state.fetched_length, e
                 )));
             }
+            let Some(new_bytes) = agent_response.body.get(new_bytes_begin..) else {
+                return Err(AgentError::InvalidHttpResponse(format!(
+                    "chunk starting at {} is shorter than expected",
+                    stream_state.fetched_length
+                )));
+            };
             let maybe_new_state = if current_fetched_length < stream_state.total_length {
                 Some(StreamState {
                     fetched_length: current_fetched_length,
@@ -420,10 +448,7 @@ fn create_206_stream(
                 None
             };
             Ok(Some((
-                (
-                    agent_response.body[new_bytes_begin..].to_vec(),
-                    maybe_new_state.clone(),
-                ),
+                (new_bytes.to_vec(), maybe_new_state.clone()),
                 (agent, maybe_new_state),
             )))
         },
@@ -506,6 +531,7 @@ mod tests {
             http_request.clone(),
             canister_id,
             &response_headers,
+            3,
             skip_verification,
         )
         .expect("failed constructing StreamState");
@@ -527,7 +553,8 @@ mod tests {
             Cow::from("other header"),
             Cow::from("other value"),
         )];
-        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
+        let result =
+            get_initial_stream_state(http_request, canister_id, &response_headers, 3, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("missing Content-Range header"));
     }
 
@@ -542,7 +569,8 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 42/10"),
         )];
-        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
+        let result =
+            get_initial_stream_state(http_request, canister_id, &response_headers, 3, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("Invalid bytes spec in Content-Range header"));
     }
 
@@ -557,8 +585,81 @@ mod tests {
             Cow::from("Content-Range"),
             Cow::from("bytes 40-100/90"),
         )];
-        let result = get_initial_stream_state(http_request, canister_id, &response_headers, false);
+        let result =
+            get_initial_stream_state(http_request, canister_id, &response_headers, 61, false);
         assert_matches!(result, Err(e) if format!("{}", e).contains("inconsistent Content-Range header"));
+    }
+
+    #[test]
+    fn should_fail_get_initial_stream_state_with_body_length_mismatch() {
+        let http_request = HttpRequest::get("http://example.com/some_file").build();
+        let canister_id = Principal::from_slice(&[1, 2, 3, 4]);
+        let response_headers = vec![HeaderField(
+            Cow::from("Content-Range"),
+            Cow::from("bytes 0-99/1000"), // claims 100 bytes
+        )];
+        for body_length in [0, 10, 99, 101] {
+            let result = get_initial_stream_state(
+                http_request.clone(),
+                canister_id,
+                &response_headers,
+                body_length,
+                false,
+            );
+            assert_matches!(result, Err(e) if format!("{}", e).contains("does not match body length"));
+        }
+    }
+
+    fn content_range_headers(value: &str) -> Vec<HeaderField<'static>> {
+        vec![HeaderField(
+            Cow::from("Content-Range"),
+            Cow::from(value.to_string()),
+        )]
+    }
+
+    #[test]
+    fn should_get_content_range_values_when_body_length_matches() {
+        // (Content-Range, fetched_length, body_length)
+        let inputs = [
+            ("bytes 0-9/1000", 0, 10),
+            ("bytes 100-149/1000", 100, 50),
+            ("bytes 90-149/1000", 100, 60), // overlaps with the already fetched bytes
+            ("bytes 999-999/1000", 999, 1),
+        ];
+        for (header, fetched_length, body_length) in inputs {
+            let result = get_content_range_values(
+                &content_range_headers(header),
+                fetched_length,
+                body_length,
+            );
+            assert!(
+                result.is_ok(),
+                "unexpected error for '{header}': {result:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn should_fail_get_content_range_values_with_body_length_mismatch() {
+        // (Content-Range, fetched_length, body_length)
+        let inputs = [
+            // The header claims a range starting before the already fetched bytes,
+            // but the body is too short to contain them.
+            ("bytes 0-149/1000", 100, 10),
+            ("bytes 0-20/1000", 10, 5),
+            ("bytes 90-149/1000", 100, 5),
+            ("bytes 100-149/1000", 100, 0),
+            ("bytes 100-149/1000", 100, 49),
+            ("bytes 100-149/1000", 100, 51),
+        ];
+        for (header, fetched_length, body_length) in inputs {
+            let result = get_content_range_values(
+                &content_range_headers(header),
+                fetched_length,
+                body_length,
+            );
+            assert_matches!(result, Err(e) if format!("{}", e).contains("does not match body length"));
+        }
     }
 
     fn collect_frames(chunks: Vec<Result<Vec<u8>, AgentError>>) -> Vec<ResponseBodyStreamItem> {
